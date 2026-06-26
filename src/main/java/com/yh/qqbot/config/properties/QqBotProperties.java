@@ -399,6 +399,7 @@ public class QqBotProperties {
         private Workflow workflow = new Workflow();
         @Min(1)
         private long timeoutMs = 30_000;
+        private double passiveChatMinConfidence = 0.5;
 
         public boolean isEnabled() {
             return enabled;
@@ -474,6 +475,14 @@ public class QqBotProperties {
 
         public void setTimeoutMs(long timeoutMs) {
             this.timeoutMs = timeoutMs;
+        }
+
+        public double getPassiveChatMinConfidence() {
+            return passiveChatMinConfidence;
+        }
+
+        public void setPassiveChatMinConfidence(double passiveChatMinConfidence) {
+            this.passiveChatMinConfidence = passiveChatMinConfidence;
         }
 
         private boolean hasText(String value) {

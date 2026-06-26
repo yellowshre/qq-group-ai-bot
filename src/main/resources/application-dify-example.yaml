@@ -7,3 +7,4 @@ qqbot:
       meme-scene: ${DIFY_WORKFLOW_MEME_SCENE:replace-with-workflow-id}
       passive-chat: ${DIFY_WORKFLOW_PASSIVE_CHAT:passive-chat-reply}
     timeout-ms: ${DIFY_TIMEOUT_MS:30000}
+    passive-chat-min-confidence: ${DIFY_PASSIVE_CHAT_MIN_CONFIDENCE:0.5}

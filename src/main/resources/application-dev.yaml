@@ -38,3 +38,4 @@ qqbot:
       meme-scene: ""
       passive-chat: ""
     timeout-ms: 30000
+    passive-chat-min-confidence: 0.5
