@@ -2,7 +2,8 @@ qqbot:
   dify:
     enabled: true
     base-url: ${DIFY_BASE_URL:http://127.0.0.1:5001}
-    api-key: ${DIFY_API_KEY:replace-with-local-dev-key}
+    api-key: ${DIFY_API_KEY:}
     workflow:
       meme-scene: ${DIFY_WORKFLOW_MEME_SCENE:replace-with-workflow-id}
+      passive-chat: ${DIFY_WORKFLOW_PASSIVE_CHAT:passive-chat-reply}
     timeout-ms: ${DIFY_TIMEOUT_MS:30000}

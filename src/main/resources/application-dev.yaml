@@ -24,6 +24,11 @@ qqbot:
     host: ${QQBOT_REDIS_HOST:127.0.0.1}
     port: ${QQBOT_REDIS_PORT:6379}
     password: ${QQBOT_REDIS_PASSWORD:}
+  chat-context:
+    key-prefix: qqbot:chat:ctx:
+    max-size: 10
+    ttl-minutes: 120
+    max-message-length: 160
   meme:
     cache-preheat-enabled: true
   dify:
@@ -31,4 +36,5 @@ qqbot:
     api-key: ""
     workflow:
       meme-scene: ""
+      passive-chat: ""
     timeout-ms: 30000

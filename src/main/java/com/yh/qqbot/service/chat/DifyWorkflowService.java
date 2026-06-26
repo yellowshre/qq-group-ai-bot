@@ -6,7 +6,11 @@ import com.yh.qqbot.dto.ChatPrompt;
 import com.yh.qqbot.dto.ChatReply;
 import com.yh.qqbot.dto.DifyMemeSceneRequest;
 import com.yh.qqbot.dto.DifyMemeSceneResponse;
+import com.yh.qqbot.dto.DifyPassiveChatRequest;
+import com.yh.qqbot.dto.DifyPassiveChatResponse;
+import com.yh.qqbot.dto.PassiveChatReply;
 import com.yh.qqbot.dto.SceneDecision;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -48,6 +52,41 @@ public class DifyWorkflowService {
                     .map(DifyMemeSceneResponse::toSceneDecision);
         } catch (Exception ex) {
             log.warn("Dify meme scene recognition failed.", ex);
+            return Optional.empty();
+        }
+    }
+
+    public Optional<PassiveChatReply> generatePassiveReply(
+            String text,
+            Long groupId,
+            Long userId,
+            String botName,
+            String persona,
+            List<String> recentMessages) {
+        if (!properties.getDify().isEnabled()) {
+            return Optional.empty();
+        }
+
+        try {
+            DifyPassiveChatRequest request = new DifyPassiveChatRequest(
+                    text,
+                    groupId,
+                    userId,
+                    botName,
+                    persona,
+                    recentMessages);
+            String difyUser = userId == null ? null : String.valueOf(userId);
+            return difyClient.runWorkflow(properties.getDify().getPassiveChatWorkflowId(), request.toInputs(), difyUser)
+                    .map(this::outputs)
+                    .map(outputs -> new DifyPassiveChatResponse(
+                            valueAsString(firstValue(outputs, "replyText", "reply_text")),
+                            valueAsNullableDouble(firstValue(outputs, "confidence", "score"))
+                    ))
+                    .filter(DifyPassiveChatResponse::valid)
+                    .map(DifyPassiveChatResponse::toPassiveChatReply)
+                    .filter(PassiveChatReply::hasText);
+        } catch (Exception ex) {
+            log.warn("Dify passive chat reply generation failed.", ex);
             return Optional.empty();
         }
     }

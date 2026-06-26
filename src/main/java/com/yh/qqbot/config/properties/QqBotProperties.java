@@ -12,10 +12,13 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties(prefix = "qqbot")
 public class QqBotProperties {
 
+    private static final String BUILT_IN_DEFAULT_PERSONA =
+            "\u4f60\u662f\u4e00\u4e2a\u8bf4\u8bdd\u7b80\u77ed\u3001\u81ea\u7136\u3001\u7565\u5e26\u5410\u69fd\u4f46\u4e0d\u6076\u610f\u653b\u51fb\u4eba\u7684 QQ \u7fa4\u673a\u5668\u4eba\u3002";
+
     private String botId = "";
     private List<String> nicknames = new ArrayList<>();
     private List<String> admins = new ArrayList<>();
-    private String defaultPersona = "Natural group chat assistant.";
+    private String defaultPersona = BUILT_IN_DEFAULT_PERSONA;
     private String defaultSafeReply = "OK, I will stay quiet for a while.";
     @NotNull
     private OneBot onebot = new OneBot();
@@ -25,6 +28,8 @@ public class QqBotProperties {
     private RateLimit rateLimit = new RateLimit();
     @NotNull
     private Memory memory = new Memory();
+    @NotNull
+    private ChatContext chatContext = new ChatContext();
     @NotNull
     private Meme meme = new Meme();
     @NotNull
@@ -102,6 +107,14 @@ public class QqBotProperties {
 
     public void setMemory(Memory memory) {
         this.memory = memory;
+    }
+
+    public ChatContext getChatContext() {
+        return chatContext;
+    }
+
+    public void setChatContext(ChatContext chatContext) {
+        this.chatContext = chatContext == null ? new ChatContext() : chatContext;
     }
 
     public Meme getMeme() {
@@ -321,6 +334,48 @@ public class QqBotProperties {
         }
     }
 
+    public static class ChatContext {
+        private String keyPrefix = "qqbot:chat:ctx:";
+        @Min(1)
+        private int maxSize = 10;
+        @Min(1)
+        private int ttlMinutes = 120;
+        @Min(1)
+        private int maxMessageLength = 160;
+
+        public String getKeyPrefix() {
+            return keyPrefix;
+        }
+
+        public void setKeyPrefix(String keyPrefix) {
+            this.keyPrefix = keyPrefix;
+        }
+
+        public int getMaxSize() {
+            return maxSize;
+        }
+
+        public void setMaxSize(int maxSize) {
+            this.maxSize = maxSize;
+        }
+
+        public int getTtlMinutes() {
+            return ttlMinutes;
+        }
+
+        public void setTtlMinutes(int ttlMinutes) {
+            this.ttlMinutes = ttlMinutes;
+        }
+
+        public int getMaxMessageLength() {
+            return maxMessageLength;
+        }
+
+        public void setMaxMessageLength(int maxMessageLength) {
+            this.maxMessageLength = maxMessageLength;
+        }
+    }
+
     public static class Meme {
         private boolean cachePreheatEnabled = true;
 
@@ -393,6 +448,10 @@ public class QqBotProperties {
             this.activeWorkflowId = activeWorkflowId;
         }
 
+        public String getPassiveChatWorkflowId() {
+            return workflow.getPassiveChat();
+        }
+
         public Workflow getWorkflow() {
             return workflow;
         }
@@ -424,6 +483,7 @@ public class QqBotProperties {
 
     public static class Workflow {
         private String memeScene = "";
+        private String passiveChat = "";
         private String chat = "";
         private String active = "";
 
@@ -433,6 +493,14 @@ public class QqBotProperties {
 
         public void setMemeScene(String memeScene) {
             this.memeScene = memeScene;
+        }
+
+        public String getPassiveChat() {
+            return passiveChat;
+        }
+
+        public void setPassiveChat(String passiveChat) {
+            this.passiveChat = passiveChat;
         }
 
         public String getChat() {

@@ -6,6 +6,7 @@ import com.yh.qqbot.config.properties.QqBotProperties;
 import com.yh.qqbot.entity.ChatSummaryEntity;
 import com.yh.qqbot.enums.MemoryMode;
 import com.yh.qqbot.mapper.ChatSummaryMapper;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -35,9 +36,55 @@ public class RedisChatContextService implements ChatContextService {
     }
 
     @Override
+    public String getRecentMessages(Long groupId) {
+        if (groupId == null) {
+            return NO_CONTEXT;
+        }
+        try {
+            List<String> items = chatRedisTemplate.opsForList().range(contextKey(String.valueOf(groupId)), 0, -1);
+            if (items == null || items.isEmpty()) {
+                return NO_CONTEXT;
+            }
+            List<String> visibleItems = items.stream()
+                    .filter(item -> item != null && !item.isBlank())
+                    .toList();
+            return visibleItems.isEmpty() ? NO_CONTEXT : String.join("\n", visibleItems);
+        } catch (Exception ex) {
+            log.warn("Failed to load recent chat context. groupId={}", groupId, ex);
+            return NO_CONTEXT;
+        }
+    }
+
+    @Override
+    public void appendUserMessage(Long groupId, Long userId, String text) {
+        String roleName = userId == null ? "\u7528\u6237" : "\u7528\u6237" + userId;
+        appendMessage(groupId, roleName, text);
+    }
+
+    @Override
+    public void appendBotReply(Long groupId, String botName, String replyText) {
+        appendMessage(groupId, hasText(botName) ? botName : "\u673a\u5668\u4eba", replyText);
+    }
+
+    @Override
+    public void appendMessage(Long groupId, String roleName, String content) {
+        if (groupId == null || !hasText(content)) {
+            return;
+        }
+        String key = contextKey(String.valueOf(groupId));
+        try {
+            chatRedisTemplate.opsForList().rightPush(key, formatLine(roleName, content));
+            chatRedisTemplate.opsForList().trim(key, -contextMaxSize(), -1);
+            chatRedisTemplate.expire(key, contextTtl());
+        } catch (Exception ex) {
+            log.warn("Failed to append recent chat context. groupId={}", groupId, ex);
+        }
+    }
+
+    @Override
     public List<String> loadHotContext(String groupId) {
         try {
-            List<String> items = chatRedisTemplate.opsForList().range(RedisKeys.chatContext(groupId), 0, -1);
+            List<String> items = chatRedisTemplate.opsForList().range(contextKey(groupId), 0, -1);
             return items == null ? List.of() : items;
         } catch (Exception ex) {
             log.warn("Failed to load hot context. groupId={}", groupId, ex);
@@ -79,12 +126,12 @@ public class RedisChatContextService implements ChatContextService {
         int turns = memoryMode == MemoryMode.LONG
                 ? properties.getMemory().getLongTurns()
                 : properties.getMemory().getShortTurns();
-        String key = RedisKeys.chatContext(groupId);
+        String key = contextKey(groupId);
         try {
-            chatRedisTemplate.opsForList().rightPush(key, "user:" + userText);
-            chatRedisTemplate.opsForList().rightPush(key, "assistant:" + assistantText);
-            chatRedisTemplate.opsForList().trim(key, -turns * 2L, -1);
-            chatRedisTemplate.expire(key, properties.getMemory().getTtl());
+            chatRedisTemplate.opsForList().rightPush(key, formatLine("user", userText));
+            chatRedisTemplate.opsForList().rightPush(key, formatLine("assistant", assistantText));
+            chatRedisTemplate.opsForList().trim(key, -Math.min(turns * 2L, contextMaxSize()), -1);
+            chatRedisTemplate.expire(key, contextTtl());
         } catch (Exception ex) {
             log.warn("Failed to append chat context. groupId={}", groupId, ex);
         }
@@ -108,7 +155,7 @@ public class RedisChatContextService implements ChatContextService {
     @Override
     public void clearGroupMemory(String groupId) {
         try {
-            chatRedisTemplate.delete(List.of(RedisKeys.chatContext(groupId), RedisKeys.recentChat(groupId)));
+            chatRedisTemplate.delete(List.of(contextKey(groupId), RedisKeys.recentChat(groupId)));
         } catch (Exception ex) {
             log.warn("Failed to clear hot memory. groupId={}", groupId, ex);
         }
@@ -118,5 +165,35 @@ public class RedisChatContextService implements ChatContextService {
         } catch (Exception ex) {
             log.warn("Failed to clear cold memory. groupId={}", groupId, ex);
         }
+    }
+
+    private String contextKey(String groupId) {
+        return RedisKeys.chatContext(properties.getChatContext().getKeyPrefix(), groupId);
+    }
+
+    private long contextMaxSize() {
+        return Math.max(1, properties.getChatContext().getMaxSize());
+    }
+
+    private Duration contextTtl() {
+        return Duration.ofMinutes(Math.max(1, properties.getChatContext().getTtlMinutes()));
+    }
+
+    private String formatLine(String roleName, String content) {
+        String safeRoleName = hasText(roleName) ? roleName.strip() : "\u672a\u77e5";
+        String safeContent = content == null ? "" : content.strip();
+        return limit(safeRoleName, 32) + "\uFF1A" + limit(safeContent, properties.getChatContext().getMaxMessageLength());
+    }
+
+    private String limit(String value, int maxLength) {
+        if (value == null) {
+            return "";
+        }
+        int safeMaxLength = Math.max(1, maxLength);
+        return value.length() <= safeMaxLength ? value : value.substring(0, safeMaxLength);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

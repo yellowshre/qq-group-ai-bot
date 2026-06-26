@@ -28,7 +28,7 @@ qqbot:
   nicknames:
     - ${QQBOT_NICKNAME:机器人}
   admins: ${QQBOT_ADMINS:}
-  default-persona: ${QQBOT_DEFAULT_PERSONA:自然、简短、像群友一样聊天，不要过度解释。}
+  default-persona: ${QQBOT_DEFAULT_PERSONA:你是一个说话简短、自然、略带吐槽但不恶意攻击人的 QQ 群机器人。}
   default-safe-reply: ${QQBOT_DEFAULT_SAFE_REPLY:收到，我先安静一下。}
   onebot:
     api-server-host: ${QQBOT_ONEBOT_API:http://127.0.0.1:3000}
@@ -53,6 +53,11 @@ qqbot:
     short-turns: ${QQBOT_MEMORY_SHORT_TURNS:10}
     long-turns: ${QQBOT_MEMORY_LONG_TURNS:20}
     ttl: ${QQBOT_MEMORY_TTL:30m}
+  chat-context:
+    key-prefix: ${QQBOT_CHAT_CONTEXT_KEY_PREFIX:qqbot:chat:ctx:}
+    max-size: ${QQBOT_CHAT_CONTEXT_MAX_SIZE:10}
+    ttl-minutes: ${QQBOT_CHAT_CONTEXT_TTL_MINUTES:120}
+    max-message-length: ${QQBOT_CHAT_CONTEXT_MAX_MESSAGE_LENGTH:160}
   meme:
     cache-preheat-enabled: ${QQBOT_MEME_CACHE_PREHEAT_ENABLED:true}
   dify:
@@ -61,6 +66,7 @@ qqbot:
     api-key: ${DIFY_API_KEY:}
     workflow:
       meme-scene: ${DIFY_WORKFLOW_MEME_SCENE:}
+      passive-chat: ${DIFY_WORKFLOW_PASSIVE_CHAT:}
       chat: ${DIFY_WORKFLOW_CHAT:}
       active: ${DIFY_WORKFLOW_ACTIVE:}
     timeout-ms: ${DIFY_TIMEOUT_MS:30000}
