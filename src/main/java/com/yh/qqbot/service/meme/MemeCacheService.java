@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yh.qqbot.cache.RedisKeys;
 import com.yh.qqbot.config.properties.QqBotProperties;
+import com.yh.qqbot.dto.MemeSemanticCacheEntry;
 import com.yh.qqbot.entity.MemeMaterialEntity;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -92,6 +94,38 @@ public class MemeCacheService implements ApplicationRunner, MemeCacheLookup {
             return Optional.empty();
         }
         return readIdList(RedisKeys.memeScene(sceneCode.strip()));
+    }
+
+    @Override
+    public Optional<MemeSemanticCacheEntry> findSemanticScene(String text) {
+        if (text == null || text.isBlank()) {
+            return Optional.empty();
+        }
+        String key = RedisKeys.memeSemanticCache(text.strip());
+        try {
+            String json = memeRedisTemplate.opsForValue().get(key);
+            if (json == null || json.isBlank()) {
+                return Optional.empty();
+            }
+            MemeSemanticCacheEntry entry = objectMapper.readValue(json, MemeSemanticCacheEntry.class);
+            return entry == null || !entry.valid() ? Optional.empty() : Optional.of(entry);
+        } catch (Exception ex) {
+            log.debug("Read meme semantic cache failed. key={}", key, ex);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void cacheSemanticScene(String text, MemeSemanticCacheEntry entry, Duration ttl) {
+        if (text == null || text.isBlank() || entry == null || !entry.valid()) {
+            return;
+        }
+        String key = RedisKeys.memeSemanticCache(text.strip());
+        try {
+            memeRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(entry), ttl);
+        } catch (Exception ex) {
+            log.debug("Write meme semantic cache failed. key={}", key, ex);
+        }
     }
 
     private void writeIndex(Map<String, List<Long>> index, boolean keywordIndex) throws Exception {

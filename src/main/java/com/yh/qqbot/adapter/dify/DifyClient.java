@@ -1,11 +1,13 @@
 package com.yh.qqbot.adapter.dify;
 
 import com.yh.qqbot.config.properties.QqBotProperties;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -19,7 +21,14 @@ public class DifyClient {
 
     public DifyClient(QqBotProperties properties, RestClient.Builder builder) {
         this.properties = properties;
-        this.restClient = builder.baseUrl(properties.getDify().getBaseUrl()).build();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        Duration timeout = Duration.ofMillis(Math.max(1, properties.getDify().getTimeoutMs()));
+        requestFactory.setConnectTimeout(timeout);
+        requestFactory.setReadTimeout(timeout);
+        this.restClient = builder
+                .baseUrl(properties.getDify().getBaseUrl())
+                .requestFactory(requestFactory)
+                .build();
     }
 
     public Optional<Map<String, Object>> runWorkflow(String workflowId, Map<String, Object> inputs, String userId) {

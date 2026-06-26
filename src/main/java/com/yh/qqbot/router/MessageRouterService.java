@@ -143,26 +143,27 @@ public class MessageRouterService {
             return RouteResult.silent("chat workflow returned empty");
         }
         String replyText = reply.get().replyText();
-        MemeMatchResult meme = memeMatchService.match(replyText, message.userId());
+        MemeMatchResult meme = memeMatchService.match(replyText, message.groupId(), message.userId());
         OutboundMessage outbound = meme.matched()
                 ? OutboundMessage.textWithImage(replyText, meme.filePath())
                 : OutboundMessage.text(replyText);
         return RouteResult.send(routeType, outbound, "chat reply generated")
-                .withMemeId(meme.memeId())
-                .withMemeHit(meme.matched());
+                .withMemeHit(meme.matched())
+                .withMemeMetadata(meme);
     }
 
     private RouteResult buildMemeRoute(BotGroupMessage message) {
         if (!rateLimitService.preConsumeEmoji(message.groupId())) {
             return RouteResult.silent("emoji route rate limited");
         }
-        MemeMatchResult meme = memeMatchService.match(message.effectiveText(), message.userId());
+        MemeMatchResult meme = memeMatchService.match(message.effectiveText(), message.groupId(), message.userId());
         if (!meme.matched()) {
-            return RouteResult.silent("meme not matched");
+            return RouteResult.silent(meme.missReason() == null ? "meme not matched" : meme.missReason())
+                    .withMemeMetadata(meme);
         }
         return RouteResult.send(RouteType.MEME, OutboundMessage.image(meme.filePath()), "meme matched")
-                .withMemeId(meme.memeId())
-                .withMemeHit(true);
+                .withMemeHit(true)
+                .withMemeMetadata(meme);
     }
 
     private long elapsedMs(long startedAt) {

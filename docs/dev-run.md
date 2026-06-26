@@ -220,3 +220,78 @@ docker exec -it qqbot-mysql-dev mysql -uqqbot -pqqbot_dev_pwd qqbot -e "select i
 ```powershell
 docker exec -it qqbot-mysql-dev mysql -uqqbot -pqqbot_dev_pwd qqbot -e "select meme_id, keywords, scene_code, weight, enabled, file_path from meme_material;"
 ```
+
+## 8. Dify 工作流 A 调试说明
+
+默认 dev profile 中：
+
+```yaml
+qqbot:
+  dify:
+    enabled: false
+```
+
+因此本地普通开发、`/dev/simulate/group-message` 和单元测试都不会访问真实 Dify。
+
+如需调试表情包语义场景识别 A 通路，可以参考 `src/main/resources/application-dify-example.yaml`，通过环境变量或单独 profile 配置：
+
+```yaml
+qqbot:
+  dify:
+    enabled: true
+    base-url: http://127.0.0.1:5001
+    api-key: ${DIFY_API_KEY}
+    workflow:
+      meme-scene: ${DIFY_WORKFLOW_MEME_SCENE}
+    timeout-ms: 30000
+```
+
+不要把真实 `api-key` 写进仓库文件。
+
+Dify 工作流 A 输入：
+
+```json
+{
+  "text": "这也太好笑了吧",
+  "groupId": 10001,
+  "userId": 20001
+}
+```
+
+Dify 工作流 A 输出需要包含：
+
+```json
+{
+  "sceneCode": "laugh",
+  "confidence": 0.86
+}
+```
+
+`sceneCode` 必须存在于 `scene_dict`，`confidence` 必须大于等于该场景的 `confidence_threshold`。通过后系统会从 `meme_material` 中按 `scene_code` 查询启用素材，并按 `weight` 随机选择。
+
+调试用例：
+
+```json
+{
+  "groupId": "10001",
+  "userId": "20001",
+  "messageId": "dev-dify-laugh-001",
+  "rawMessage": "这也太好笑了吧",
+  "atBot": false,
+  "botNicknameMatched": false
+}
+```
+
+期望命中时返回中能看到：
+
+```json
+{
+  "routeType": "MEME",
+  "memeHit": true,
+  "workflowType": "MEME_DIFY_SCENE",
+  "sceneCode": "laugh",
+  "confidence": 0.86
+}
+```
+
+如果 Dify 超时、失败、返回格式异常、`sceneCode` 不存在、置信度低于阈值，系统应返回 `SILENT`，不影响主流程。语义结果会缓存到 Redis database `2`，Key 为 `meme:cache:{textHash}`，TTL 约 1 小时。

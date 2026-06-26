@@ -4,13 +4,19 @@ import com.yh.qqbot.adapter.dify.DifyClient;
 import com.yh.qqbot.config.properties.QqBotProperties;
 import com.yh.qqbot.dto.ChatPrompt;
 import com.yh.qqbot.dto.ChatReply;
+import com.yh.qqbot.dto.DifyMemeSceneRequest;
+import com.yh.qqbot.dto.DifyMemeSceneResponse;
 import com.yh.qqbot.dto.SceneDecision;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DifyWorkflowService {
+
+    private static final Logger log = LoggerFactory.getLogger(DifyWorkflowService.class);
 
     private final DifyClient difyClient;
     private final QqBotProperties properties;
@@ -21,18 +27,29 @@ public class DifyWorkflowService {
     }
 
     public Optional<SceneDecision> classifyScene(String text, String userId) {
+        return recognizeMemeScene(text, null, parseLong(userId));
+    }
+
+    public Optional<SceneDecision> recognizeMemeScene(String text, Long groupId, Long userId) {
         if (!properties.getDify().isEnabled()) {
             return Optional.empty();
         }
 
-        Map<String, Object> inputs = Map.of("text", text == null ? "" : text);
-        return difyClient.runWorkflow(properties.getDify().getSceneWorkflowId(), inputs, userId)
-                .map(this::outputs)
-                .map(outputs -> new SceneDecision(
-                        valueAsString(outputs.get("sceneCode")),
-                        valueAsDouble(outputs.get("confidence"))
-                ))
-                .filter(SceneDecision::valid);
+        try {
+            DifyMemeSceneRequest request = new DifyMemeSceneRequest(text, groupId, userId);
+            String difyUser = userId == null ? null : String.valueOf(userId);
+            return difyClient.runWorkflow(properties.getDify().getSceneWorkflowId(), request.toInputs(), difyUser)
+                    .map(this::outputs)
+                    .map(outputs -> new DifyMemeSceneResponse(
+                            valueAsString(firstValue(outputs, "sceneCode", "scene_code")),
+                            valueAsNullableDouble(firstValue(outputs, "confidence", "score"))
+                    ))
+                    .filter(DifyMemeSceneResponse::valid)
+                    .map(DifyMemeSceneResponse::toSceneDecision);
+        } catch (Exception ex) {
+            log.warn("Dify meme scene recognition failed.", ex);
+            return Optional.empty();
+        }
     }
 
     public Optional<ChatReply> generateReply(ChatPrompt prompt, String userId) {
@@ -107,6 +124,40 @@ public class DifyWorkflowService {
             return Double.parseDouble(String.valueOf(value));
         } catch (NumberFormatException ex) {
             return 0;
+        }
+    }
+
+    private Double valueAsNullableDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private Object firstValue(Map<String, Object> values, String... names) {
+        for (String name : names) {
+            if (values.containsKey(name)) {
+                return values.get(name);
+            }
+        }
+        return null;
+    }
+
+    private Long parseLong(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value);
+        } catch (NumberFormatException ex) {
+            return null;
         }
     }
 }

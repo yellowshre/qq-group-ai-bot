@@ -340,7 +340,10 @@ public class QqBotProperties {
         private String sceneWorkflowId = "";
         private String chatWorkflowId = "";
         private String activeWorkflowId = "";
-        private Duration timeout = Duration.ofSeconds(30);
+        @NotNull
+        private Workflow workflow = new Workflow();
+        @Min(1)
+        private long timeoutMs = 30_000;
 
         public boolean isEnabled() {
             return enabled;
@@ -367,7 +370,7 @@ public class QqBotProperties {
         }
 
         public String getSceneWorkflowId() {
-            return sceneWorkflowId;
+            return hasText(sceneWorkflowId) ? sceneWorkflowId : workflow.getMemeScene();
         }
 
         public void setSceneWorkflowId(String sceneWorkflowId) {
@@ -375,7 +378,7 @@ public class QqBotProperties {
         }
 
         public String getChatWorkflowId() {
-            return chatWorkflowId;
+            return hasText(chatWorkflowId) ? chatWorkflowId : workflow.getChat();
         }
 
         public void setChatWorkflowId(String chatWorkflowId) {
@@ -383,19 +386,69 @@ public class QqBotProperties {
         }
 
         public String getActiveWorkflowId() {
-            return activeWorkflowId;
+            return hasText(activeWorkflowId) ? activeWorkflowId : workflow.getActive();
         }
 
         public void setActiveWorkflowId(String activeWorkflowId) {
             this.activeWorkflowId = activeWorkflowId;
         }
 
+        public Workflow getWorkflow() {
+            return workflow;
+        }
+
+        public void setWorkflow(Workflow workflow) {
+            this.workflow = workflow == null ? new Workflow() : workflow;
+        }
+
         public Duration getTimeout() {
-            return timeout;
+            return Duration.ofMillis(timeoutMs);
         }
 
         public void setTimeout(Duration timeout) {
-            this.timeout = timeout;
+            this.timeoutMs = timeout == null ? 30_000 : timeout.toMillis();
+        }
+
+        public long getTimeoutMs() {
+            return timeoutMs;
+        }
+
+        public void setTimeoutMs(long timeoutMs) {
+            this.timeoutMs = timeoutMs;
+        }
+
+        private boolean hasText(String value) {
+            return value != null && !value.isBlank();
+        }
+    }
+
+    public static class Workflow {
+        private String memeScene = "";
+        private String chat = "";
+        private String active = "";
+
+        public String getMemeScene() {
+            return memeScene;
+        }
+
+        public void setMemeScene(String memeScene) {
+            this.memeScene = memeScene;
+        }
+
+        public String getChat() {
+            return chat;
+        }
+
+        public void setChat(String chat) {
+            this.chat = chat;
+        }
+
+        public String getActive() {
+            return active;
+        }
+
+        public void setActive(String active) {
+            this.active = active;
         }
     }
 

@@ -29,3 +29,6 @@ qqbot:
   dify:
     enabled: false
     api-key: ""
+    workflow:
+      meme-scene: ""
+    timeout-ms: 30000

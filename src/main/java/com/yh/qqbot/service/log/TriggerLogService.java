@@ -29,9 +29,10 @@ public class TriggerLogService {
             entity.setUserId(Long.valueOf(message.userId()));
             entity.setMessageId(message.messageId());
             entity.setOriginalMsg(message.rawMessage());
-            entity.setResponseType(result.routeType().name());
+            entity.setResponseType(result.responseType());
             entity.setResponseText(result.outboundMessage() == null ? null : result.outboundMessage().text());
             entity.setMemeId(result.memeId());
+            entity.setWorkflowType(result.workflowType());
             entity.setDurationMs(result.durationMs());
             entity.setSuccess(success);
             entity.setErrorMsg(errorMsg);
