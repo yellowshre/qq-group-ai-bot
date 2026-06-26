@@ -1,0 +1,57 @@
+package com.yh.qqbot.adapter.dify;
+
+import com.yh.qqbot.config.properties.QqBotProperties;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+
+@Component
+public class DifyClient {
+
+    private static final Logger log = LoggerFactory.getLogger(DifyClient.class);
+
+    private final QqBotProperties properties;
+    private final RestClient restClient;
+
+    public DifyClient(QqBotProperties properties, RestClient.Builder builder) {
+        this.properties = properties;
+        this.restClient = builder.baseUrl(properties.getDify().getBaseUrl()).build();
+    }
+
+    public Optional<Map<String, Object>> runWorkflow(String workflowId, Map<String, Object> inputs, String userId) {
+        QqBotProperties.Dify dify = properties.getDify();
+        if (!dify.isEnabled()) {
+            log.debug("Skip Dify workflow because Dify is disabled.");
+            return Optional.empty();
+        }
+        if (workflowId == null || workflowId.isBlank() || dify.getApiKey() == null || dify.getApiKey().isBlank()) {
+            log.debug("Skip Dify workflow because workflow id or api key is blank.");
+            return Optional.empty();
+        }
+
+        try {
+            Map<String, Object> body = Map.of(
+                    "workflow_id", workflowId,
+                    "inputs", inputs,
+                    "response_mode", "blocking",
+                    "user", userId == null || userId.isBlank() ? "qqbot" : userId
+            );
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restClient.post()
+                    .uri("/v1/workflows/run")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("Authorization", "Bearer " + dify.getApiKey())
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+            return Optional.ofNullable(response);
+        } catch (Exception ex) {
+            log.warn("Dify workflow call failed. workflowId={}", workflowId, ex);
+            return Optional.empty();
+        }
+    }
+}

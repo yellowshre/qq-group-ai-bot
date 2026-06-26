@@ -89,10 +89,11 @@ if (-not (Test-Path -Path $MAVEN_M2_PATH)) {
 }
 
 $MAVEN_WRAPPER_DISTS = $null
-if ((Get-Item $MAVEN_M2_PATH).Target[0] -eq $null) {
+$MAVEN_M2_ITEM = Get-Item $MAVEN_M2_PATH
+if ($null -eq $MAVEN_M2_ITEM.Target -or $MAVEN_M2_ITEM.Target.Count -eq 0 -or $null -eq $MAVEN_M2_ITEM.Target[0]) {
   $MAVEN_WRAPPER_DISTS = "$MAVEN_M2_PATH/wrapper/dists"
 } else {
-  $MAVEN_WRAPPER_DISTS = (Get-Item $MAVEN_M2_PATH).Target[0] + "/wrapper/dists"
+  $MAVEN_WRAPPER_DISTS = $MAVEN_M2_ITEM.Target[0] + "/wrapper/dists"
 }
 
 $MAVEN_HOME_PARENT = "$MAVEN_WRAPPER_DISTS/$distributionUrlNameMain"
@@ -103,6 +104,25 @@ if (Test-Path -Path "$MAVEN_HOME" -PathType Container) {
   Write-Verbose "found existing MAVEN_HOME at $MAVEN_HOME"
   Write-Output "MVN_CMD=$MAVEN_HOME/bin/$MVN_CMD"
   exit $?
+}
+
+if (Test-Path -Path "$MAVEN_HOME_PARENT" -PathType Container) {
+  $existingMvn = Get-ChildItem -Path "$MAVEN_HOME_PARENT" -Recurse -Filter "$MVN_CMD" -File | Select-Object -First 1
+  if ($existingMvn) {
+    Write-Verbose "found existing Maven executable at $($existingMvn.FullName)"
+    Write-Output "MVN_CMD=$($existingMvn.FullName)"
+    exit $?
+  }
+}
+
+$MAVEN_HOME_PARENT_WITH_BIN = "$MAVEN_WRAPPER_DISTS/$distributionUrlNameMain-bin"
+if (Test-Path -Path "$MAVEN_HOME_PARENT_WITH_BIN" -PathType Container) {
+  $existingMvn = Get-ChildItem -Path "$MAVEN_HOME_PARENT_WITH_BIN" -Recurse -Filter "$MVN_CMD" -File | Select-Object -First 1
+  if ($existingMvn) {
+    Write-Verbose "found existing Maven executable at $($existingMvn.FullName)"
+    Write-Output "MVN_CMD=$($existingMvn.FullName)"
+    exit $?
+  }
 }
 
 if (! $distributionUrlNameMain -or ($distributionUrlName -eq $distributionUrlNameMain)) {

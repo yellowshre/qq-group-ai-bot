@@ -1,5 +1,69 @@
 spring:
   application:
-    name: bot
+    name: qqbot
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${QQBOT_MYSQL_URL:jdbc:mysql://localhost:3306/qqbot?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${QQBOT_MYSQL_USERNAME:qqbot}
+    password: ${QQBOT_MYSQL_PASSWORD:qqbot_dev_pwd}
+    hikari:
+      initialization-fail-timeout: -1
+  sql:
+    init:
+      mode: never
 server:
   port: 8081
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+  configuration:
+    map-underscore-to-camel-case: true
+
+qqbot:
+  bot-id: ${QQBOT_BOT_ID:}
+  nicknames:
+    - ${QQBOT_NICKNAME:机器人}
+  admins: ${QQBOT_ADMINS:}
+  default-persona: ${QQBOT_DEFAULT_PERSONA:自然、简短、像群友一样聊天，不要过度解释。}
+  default-safe-reply: ${QQBOT_DEFAULT_SAFE_REPLY:收到，我先安静一下。}
+  onebot:
+    api-server-host: ${QQBOT_ONEBOT_API:http://127.0.0.1:3000}
+    event-server-host: ${QQBOT_ONEBOT_EVENT:ws://127.0.0.1:3001}
+    access-token: ${QQBOT_ONEBOT_TOKEN:}
+    dry-run: ${QQBOT_ONEBOT_DRY_RUN:true}
+  redis:
+    host: ${QQBOT_REDIS_HOST:127.0.0.1}
+    port: ${QQBOT_REDIS_PORT:6379}
+    password: ${QQBOT_REDIS_PASSWORD:}
+    timeout: ${QQBOT_REDIS_TIMEOUT:3s}
+    database:
+      base: 0
+      chat: 1
+      meme: 2
+      rate: 3
+  rate-limit:
+    emoji-per-minute: ${QQBOT_RATE_EMOJI_PER_MINUTE:6}
+    passive-chat-per-minute: ${QQBOT_RATE_PASSIVE_CHAT_PER_MINUTE:3}
+    active-chat-per-minute: ${QQBOT_RATE_ACTIVE_CHAT_PER_MINUTE:1}
+  memory:
+    short-turns: ${QQBOT_MEMORY_SHORT_TURNS:10}
+    long-turns: ${QQBOT_MEMORY_LONG_TURNS:20}
+    ttl: ${QQBOT_MEMORY_TTL:30m}
+  meme:
+    cache-preheat-enabled: ${QQBOT_MEME_CACHE_PREHEAT_ENABLED:true}
+  dify:
+    enabled: ${DIFY_ENABLED:false}
+    base-url: ${DIFY_BASE_URL:http://127.0.0.1:5001}
+    api-key: ${DIFY_API_KEY:}
+    scene-workflow-id: ${DIFY_SCENE_WORKFLOW_ID:}
+    chat-workflow-id: ${DIFY_CHAT_WORKFLOW_ID:}
+    active-workflow-id: ${DIFY_ACTIVE_WORKFLOW_ID:}
+    timeout: ${DIFY_TIMEOUT:30s}
+  async:
+    core-pool-size: ${QQBOT_ASYNC_CORE_POOL_SIZE:4}
+    max-pool-size: ${QQBOT_ASYNC_MAX_POOL_SIZE:12}
+    queue-capacity: ${QQBOT_ASYNC_QUEUE_CAPACITY:500}

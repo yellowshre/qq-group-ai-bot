@@ -1,0 +1,40 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: qqbot-mysql-dev
+    environment:
+      MYSQL_DATABASE: qqbot
+      MYSQL_USER: qqbot
+      MYSQL_PASSWORD: qqbot_dev_pwd
+      MYSQL_ROOT_PASSWORD: root_dev_pwd
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - qqbot_mysql_data:/var/lib/mysql
+      - ./src/main/resources/db/mysql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uqqbot", "-pqqbot_dev_pwd"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: qqbot-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - qqbot_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  qqbot_mysql_data:
+  qqbot_redis_data:

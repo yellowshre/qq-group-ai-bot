@@ -1,0 +1,16 @@
+{
+  "component": "simbot.onebot11",
+  "authorization": {
+    "botUniqueId": "your-qq-bot-id",
+    "apiServerHost": "http://127.0.0.1:3000",
+    "eventServerHost": "ws://127.0.0.1:3001",
+    "accessToken": ""
+  },
+  "config": {
+    "apiHttpRequestTimeoutMillis": 30000,
+    "apiHttpConnectTimeoutMillis": 3000,
+    "apiHttpSocketTimeoutMillis": 30000,
+    "wsConnectMaxRetryTimes": 20,
+    "wsConnectRetryDelayMillis": 3000
+  }
+}

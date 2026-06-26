@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: ${QQBOT_MYSQL_URL:jdbc:mysql://127.0.0.1:3306/qqbot?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${QQBOT_MYSQL_USERNAME:qqbot}
+    password: ${QQBOT_MYSQL_PASSWORD:qqbot_dev_pwd}
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 3000
+      initialization-fail-timeout: -1
+  sql:
+    init:
+      mode: never
+
+simbot:
+  bots:
+    auto-start-bots: false
+    configuration-json-resources: []
+
+qqbot:
+  onebot:
+    access-token: ""
+    dry-run: true
+  redis:
+    host: ${QQBOT_REDIS_HOST:127.0.0.1}
+    port: ${QQBOT_REDIS_PORT:6379}
+    password: ${QQBOT_REDIS_PASSWORD:}
+  meme:
+    cache-preheat-enabled: true
+  dify:
+    enabled: false
+    api-key: ""
