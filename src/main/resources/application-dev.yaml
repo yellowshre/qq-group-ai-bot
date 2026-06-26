@@ -20,22 +20,29 @@ qqbot:
   onebot:
     access-token: ""
     dry-run: true
+
   redis:
     host: ${QQBOT_REDIS_HOST:127.0.0.1}
     port: ${QQBOT_REDIS_PORT:6379}
     password: ${QQBOT_REDIS_PASSWORD:}
+
+  default-persona: ${QQBOT_DEFAULT_PERSONA:你是一个说话简短、自然、略带吐槽但不恶意攻击人的 QQ 群机器人。}
+
   chat-context:
-    key-prefix: qqbot:chat:ctx:
+    key-prefix: "qqbot:chat:ctx:"
     max-size: 10
     ttl-minutes: 120
     max-message-length: 160
+
   meme:
     cache-preheat-enabled: true
+
   dify:
-    enabled: false
-    api-key: ""
+    enabled: ${DIFY_ENABLED:false}
+    base-url: ${DIFY_BASE_URL:https://api.dify.ai/v1}
+    api-key: ${DIFY_API_KEY:}
     workflow:
-      meme-scene: ""
-      passive-chat: ""
+      meme-scene: ${DIFY_MEME_SCENE_WORKFLOW:meme-scene-recognizer}
+      passive-chat: ${DIFY_PASSIVE_CHAT_WORKFLOW:passive-chat-reply}
     timeout-ms: 30000
     passive-chat-min-confidence: 0.5

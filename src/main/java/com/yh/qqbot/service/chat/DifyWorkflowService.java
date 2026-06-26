@@ -40,7 +40,7 @@ public class DifyWorkflowService {
         }
 
         try {
-            DifyMemeSceneRequest request = new DifyMemeSceneRequest(text, groupId, userId);
+            DifyMemeSceneRequest request = new DifyMemeSceneRequest(text, toInputString(groupId), toInputString(userId));
             String difyUser = userId == null ? null : String.valueOf(userId);
             return difyClient.runWorkflow(properties.getDify().getSceneWorkflowId(), request.toInputs(), difyUser)
                     .map(this::outputs)
@@ -70,8 +70,8 @@ public class DifyWorkflowService {
         try {
             DifyPassiveChatRequest request = new DifyPassiveChatRequest(
                     text,
-                    groupId,
-                    userId,
+                    toInputString(groupId),
+                    toInputString(userId),
                     botName,
                     persona,
                     recentMessages);
@@ -187,6 +187,10 @@ public class DifyWorkflowService {
             }
         }
         return null;
+    }
+
+    private String toInputString(Long value) {
+        return value == null ? null : String.valueOf(value);
     }
 
     private Long parseLong(String value) {

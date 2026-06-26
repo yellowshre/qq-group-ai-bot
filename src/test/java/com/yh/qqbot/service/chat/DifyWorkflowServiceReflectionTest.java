@@ -36,6 +36,9 @@ class DifyWorkflowServiceReflectionTest {
         Object client = difyClientMock();
         Object properties = properties(true, "passive-chat-reply");
         Map<String, Object> inputs = passiveInputs("hello", 10001L, 20001L, "bot", "persona", List.of("before"));
+        assertThat(inputs.get("groupId")).isInstanceOf(String.class).isEqualTo("10001");
+        assertThat(inputs.get("userId")).isInstanceOf(String.class).isEqualTo("20001");
+        assertThat(inputs.get("recentMessages")).isInstanceOf(String.class).isEqualTo("before");
         stubRunWorkflow(client, "passive-chat-reply", inputs, "20001",
                 Optional.of(difyResponse(Map.of("replyText", "hi there", "confidence", 0.88))));
         Object service = service(client, properties);
@@ -65,6 +68,27 @@ class DifyWorkflowServiceReflectionTest {
     }
 
     @Test
+    void recognizeMemeSceneSendsStringIds() throws Exception {
+        Object client = difyClientMock();
+        Object properties = properties(true, "passive-chat-reply");
+        Map<String, Object> inputs = sceneInputs("funny", 10001L, 20001L);
+        assertThat(inputs.get("groupId")).isInstanceOf(String.class).isEqualTo("10001");
+        assertThat(inputs.get("userId")).isInstanceOf(String.class).isEqualTo("20001");
+        stubRunWorkflow(client, "meme-scene", inputs, "20001",
+                Optional.of(difyResponse(Map.of("sceneCode", "laugh", "confidence", 0.88))));
+        Object service = service(client, properties);
+
+        Optional<?> result = (Optional<?>) invoke(service, "recognizeMemeScene",
+                new Class<?>[]{String.class, Long.class, Long.class},
+                "funny", 10001L, 20001L);
+
+        assertThat(result).isPresent();
+        Object decision = result.get();
+        assertThat(invoke(decision, "sceneCode")).isEqualTo("laugh");
+        assertThat(invoke(decision, "confidence")).isEqualTo(0.88);
+    }
+
+    @Test
     void generatePassiveReplyReturnsEmptyWhenDifyClientThrows() throws Exception {
         Object client = difyClientMock();
         Object properties = properties(true, "passive-chat-reply");
@@ -84,6 +108,7 @@ class DifyWorkflowServiceReflectionTest {
         invoke(dify, "setEnabled", new Class<?>[]{boolean.class}, enabled);
         Object workflow = invoke(dify, "getWorkflow");
         invoke(workflow, "setPassiveChat", new Class<?>[]{String.class}, passiveChatWorkflowId);
+        invoke(workflow, "setMemeScene", new Class<?>[]{String.class}, "meme-scene");
         return properties;
     }
 
@@ -122,11 +147,19 @@ class DifyWorkflowServiceReflectionTest {
             List<String> recentMessages) {
         Map<String, Object> inputs = new LinkedHashMap<>();
         inputs.put("text", text);
-        inputs.put("groupId", groupId);
-        inputs.put("userId", userId);
+        inputs.put("groupId", String.valueOf(groupId));
+        inputs.put("userId", String.valueOf(userId));
         inputs.put("botName", botName);
         inputs.put("persona", persona);
-        inputs.put("recentMessages", recentMessages);
+        inputs.put("recentMessages", String.join("\n", recentMessages));
+        return inputs;
+    }
+
+    private Map<String, Object> sceneInputs(String text, Long groupId, Long userId) {
+        Map<String, Object> inputs = new LinkedHashMap<>();
+        inputs.put("text", text);
+        inputs.put("groupId", String.valueOf(groupId));
+        inputs.put("userId", String.valueOf(userId));
         return inputs;
     }
 

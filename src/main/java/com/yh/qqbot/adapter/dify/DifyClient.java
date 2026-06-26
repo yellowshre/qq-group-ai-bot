@@ -51,7 +51,7 @@ public class DifyClient {
             );
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restClient.post()
-                    .uri("/v1/workflows/run")
+                    .uri("/workflows/run")
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("Authorization", "Bearer " + dify.getApiKey())
                     .body(body)

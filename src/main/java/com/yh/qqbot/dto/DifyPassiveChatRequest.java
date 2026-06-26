@@ -6,8 +6,8 @@ import java.util.Map;
 
 public record DifyPassiveChatRequest(
         String text,
-        Long groupId,
-        Long userId,
+        String groupId,
+        String userId,
         String botName,
         String persona,
         List<String> recentMessages) {
@@ -23,7 +23,7 @@ public record DifyPassiveChatRequest(
         }
         inputs.put("botName", botName == null ? "" : botName);
         inputs.put("persona", persona == null ? "" : persona);
-        inputs.put("recentMessages", recentMessages == null ? List.of() : recentMessages);
+        inputs.put("recentMessages", recentMessages == null ? "" : String.join("\n", recentMessages));
         return inputs;
     }
 }
