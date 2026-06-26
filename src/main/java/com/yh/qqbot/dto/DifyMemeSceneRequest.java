@@ -3,7 +3,7 @@ package com.yh.qqbot.dto;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record DifyMemeSceneRequest(String text, Long groupId, Long userId) {
+public record DifyMemeSceneRequest(String text, String groupId, String userId) {
 
     public Map<String, Object> toInputs() {
         Map<String, Object> inputs = new LinkedHashMap<>();

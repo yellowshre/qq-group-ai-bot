@@ -295,3 +295,119 @@ Dify 工作流 A 输出需要包含：
 ```
 
 如果 Dify 超时、失败、返回格式异常、`sceneCode` 不存在、置信度低于阈值，系统应返回 `SILENT`，不影响主流程。语义结果会缓存到 Redis database `2`，Key 为 `meme:cache:{textHash}`，TTL 约 1 小时。
+
+## 9. Dify 工作流 B 被动对话调试说明
+
+默认 dev profile 中 `qqbot.dify.enabled=false`，因此 `atBot=true` 或 `botNicknameMatched=true` 只会返回明确的静默原因，不会访问真实 Dify。
+
+如需本地调试被动 AI 对话 B 通路，先通过环境变量提供 Dify 配置，不要把真实 Key 写入仓库文件：
+
+```powershell
+$env:DIFY_BASE_URL="https://api.dify.ai/v1"
+$env:DIFY_API_KEY="你的工作流 B API Key"
+$env:DIFY_WORKFLOW_PASSIVE_CHAT="passive-chat-reply"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev" "-Dspring-boot.run.arguments=--qqbot.dify.enabled=true"
+```
+
+Dify 工作流 B 输入变量：
+
+```json
+{
+  "text": "@小黄 你觉得我这波操作怎么样",
+  "groupId": 10001,
+  "userId": 20001,
+  "botName": "小黄",
+  "persona": "你是一个说话简短、自然、略带吐槽但不恶意攻击人的 QQ 群机器人。",
+  "recentMessages": "暂无上下文"
+}
+```
+
+Dify 工作流 B 输出变量：
+
+```json
+{
+  "replyText": "这波有点东西，但也别太自信。",
+  "confidence": 0.86
+}
+```
+
+### 9.1 atBot 触发被动 B
+
+```json
+{
+  "groupId": "10001",
+  "userId": "20001",
+  "messageId": "passive-chat-test-001",
+  "rawMessage": "@小黄 你觉得我这波操作怎么样",
+  "atBot": true,
+  "botNicknameMatched": false
+}
+```
+
+期望返回中能看到：
+
+```json
+{
+  "routeType": "PASSIVE_CHAT",
+  "responseType": "PASSIVE_CHAT",
+  "shouldSend": true,
+  "passiveChatHit": true,
+  "replyText": "有值",
+  "chatConfidence": 0.86,
+  "workflowType": "PASSIVE_DIFY_CHAT"
+}
+```
+
+### 9.2 昵称命中触发被动 B
+
+```json
+{
+  "groupId": "10001",
+  "userId": "20001",
+  "messageId": "passive-chat-test-002",
+  "rawMessage": "小黄，你说我现在该不该睡觉",
+  "atBot": false,
+  "botNicknameMatched": true
+}
+```
+
+期望 `passiveChatHit=true`，并由 dev profile 下的 `MockMessageSender` 模拟发送文字。
+
+### 9.3 普通消息不触发被动 B
+
+```json
+{
+  "groupId": "10001",
+  "userId": "20001",
+  "messageId": "passive-chat-test-003",
+  "rawMessage": "今天晚上吃什么",
+  "atBot": false,
+  "botNicknameMatched": false
+}
+```
+
+期望 `passiveChatHit=false`，不会调用 Dify 工作流 B，会继续走普通表情包 A 通路或静默。
+
+### 9.4 文字回复后继续配图
+
+被动 B 成功生成 `replyText` 后，系统会用 `replyText` 调用 `MemeMatchService`。如果命中素材，返回中会看到 `memeHit=true`、`memeId`、`sceneCode` 等字段，并且 `MockMessageSender` 会先模拟发送文字，再模拟发送图片。
+
+### 9.5 Redis 上下文与 trigger_log 验收
+
+查看 Redis 热层上下文：
+
+```powershell
+docker exec -it qqbot-redis-dev redis-cli -n 1 KEYS "*chat*"
+docker exec -it qqbot-redis-dev redis-cli -n 1 LRANGE "qqbot:chat:ctx:10001" 0 -1
+docker exec -it qqbot-redis-dev redis-cli -n 1 TTL "qqbot:chat:ctx:10001"
+```
+
+期望能看到用户消息和机器人回复，且 Key 有 TTL。
+
+查看 MySQL 触发日志：
+
+```powershell
+docker exec -it qqbot-mysql-dev mysql -uqqbot -pqqbot_dev_pwd qqbot -e "select id, group_id, user_id, message_id, response_type, response_text, meme_id, workflow_type, duration_ms, success, error_msg, created_at from trigger_log order by id desc limit 10;"
+```
+
+期望 `workflow_type=PASSIVE_DIFY_CHAT`；如果回复配图命中，`meme_id` 有值。

@@ -1,6 +1,7 @@
 package com.yh.qqbot.adapter.onebot;
 
 import com.yh.qqbot.dto.BotGroupMessage;
+import com.yh.qqbot.dto.OutboundMessage;
 import com.yh.qqbot.dto.RouteResult;
 import com.yh.qqbot.router.MessageRouterService;
 import org.slf4j.Logger;
@@ -28,7 +29,7 @@ public class OneBotInboundAdapter {
 
         boolean success = false;
         try {
-            success = qqMessageSender.sendGroupMessage(message.groupId(), result.outboundMessage());
+            success = sendOutbound(message.groupId(), result.outboundMessage());
             return result;
         } catch (Exception ex) {
             log.warn("Failed to send group message. groupId={}, messageId={}", message.groupId(), message.messageId(), ex);
@@ -36,5 +37,22 @@ public class OneBotInboundAdapter {
         } finally {
             messageRouterService.afterSend(message, result, success);
         }
+    }
+
+    private boolean sendOutbound(String groupId, OutboundMessage outboundMessage) {
+        if (hasText(outboundMessage) && hasImage(outboundMessage)) {
+            boolean textSent = qqMessageSender.sendGroupMessage(groupId, OutboundMessage.text(outboundMessage.text()));
+            boolean imageSent = qqMessageSender.sendGroupMessage(groupId, OutboundMessage.image(outboundMessage.imagePath()));
+            return textSent && imageSent;
+        }
+        return qqMessageSender.sendGroupMessage(groupId, outboundMessage);
+    }
+
+    private boolean hasText(OutboundMessage outboundMessage) {
+        return outboundMessage.text() != null && !outboundMessage.text().isBlank();
+    }
+
+    private boolean hasImage(OutboundMessage outboundMessage) {
+        return outboundMessage.imagePath() != null && !outboundMessage.imagePath().isBlank();
     }
 }

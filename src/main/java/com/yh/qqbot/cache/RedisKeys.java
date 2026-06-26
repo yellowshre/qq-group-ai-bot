@@ -19,7 +19,12 @@ public final class RedisKeys {
     }
 
     public static String chatContext(String groupId) {
-        return "chat:ctx:" + groupId;
+        return chatContext("qqbot:chat:ctx:", groupId);
+    }
+
+    public static String chatContext(String keyPrefix, String groupId) {
+        String prefix = keyPrefix == null || keyPrefix.isBlank() ? "qqbot:chat:ctx:" : keyPrefix;
+        return prefix + groupId;
     }
 
     public static String recentChat(String groupId) {
