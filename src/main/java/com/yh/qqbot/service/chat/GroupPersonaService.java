@@ -38,6 +38,10 @@ public class GroupPersonaService {
     }
 
     private String defaultPersona() {
+        String identityPersona = properties.getIdentity().getDefaultPersona();
+        if (hasText(identityPersona)) {
+            return identityPersona.strip();
+        }
         String configured = properties.getDefaultPersona();
         return hasText(configured) ? configured.strip() : DEFAULT_PERSONA;
     }

@@ -30,6 +30,40 @@ qqbot:
   admins: ${QQBOT_ADMINS:}
   default-persona: ${QQBOT_DEFAULT_PERSONA:你是一个说话简短、自然、略带吐槽但不恶意攻击人的 QQ 群机器人。}
   default-safe-reply: ${QQBOT_DEFAULT_SAFE_REPLY:收到，我先安静一下。}
+  identity:
+    display-name: ${QQBOT_DISPLAY_NAME:小黄}
+    aliases:
+      - ${QQBOT_ALIAS_PRIMARY:小黄}
+      - ${QQBOT_ALIAS_SECONDARY:黄哥}
+      - ${QQBOT_ALIAS_FALLBACK:机器人}
+    default-persona: ${QQBOT_DEFAULT_PERSONA:你是一个说话简短、自然、略带吐槽但不恶意攻击人的 QQ 群机器人。}
+  safety:
+    admin-only: ${QQBOT_SAFETY_ADMIN_ONLY:true}
+    active-chat-off-words:
+      - "#autochatoff"
+      - "#停用主动插话"
+      - "#别插话"
+      - "小黄闭嘴"
+    active-chat-on-words:
+      - "#autochaton"
+      - "#开启主动插话"
+      - "#可以说话了"
+      - "小黄说话"
+  passive-chat:
+    trigger-words:
+      - "小黄"
+      - "黄哥"
+      - "机器人"
+  active-chat:
+    enabled: ${QQBOT_ACTIVE_CHAT_ENABLED:true}
+    cooldown-seconds: ${QQBOT_ACTIVE_CHAT_COOLDOWN_SECONDS:180}
+    max-per-hour: ${QQBOT_ACTIVE_CHAT_MAX_PER_HOUR:20}
+    random-probability: ${QQBOT_ACTIVE_CHAT_RANDOM_PROBABILITY:1.0}
+    min-confidence: ${QQBOT_ACTIVE_CHAT_MIN_CONFIDENCE:0.6}
+    min-message-length: ${QQBOT_ACTIVE_CHAT_MIN_MESSAGE_LENGTH:3}
+    max-message-length: ${QQBOT_ACTIVE_CHAT_MAX_MESSAGE_LENGTH:80}
+    allow-after-meme-sent: ${QQBOT_ACTIVE_CHAT_ALLOW_AFTER_MEME_SENT:false}
+    allow-after-bot-message: ${QQBOT_ACTIVE_CHAT_ALLOW_AFTER_BOT_MESSAGE:false}
   onebot:
     api-server-host: ${QQBOT_ONEBOT_API:http://127.0.0.1:3000}
     event-server-host: ${QQBOT_ONEBOT_EVENT:ws://127.0.0.1:3001}
@@ -68,9 +102,10 @@ qqbot:
       meme-scene: ${DIFY_WORKFLOW_MEME_SCENE:}
       passive-chat: ${DIFY_WORKFLOW_PASSIVE_CHAT:}
       chat: ${DIFY_WORKFLOW_CHAT:}
-      active: ${DIFY_WORKFLOW_ACTIVE:}
+      active-chat: ${DIFY_WORKFLOW_ACTIVE_CHAT:}
     timeout-ms: ${DIFY_TIMEOUT_MS:30000}
     passive-chat-min-confidence: ${DIFY_PASSIVE_CHAT_MIN_CONFIDENCE:0.5}
+    active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}
   async:
     core-pool-size: ${QQBOT_ASYNC_CORE_POOL_SIZE:4}
     max-pool-size: ${QQBOT_ASYNC_MAX_POOL_SIZE:12}

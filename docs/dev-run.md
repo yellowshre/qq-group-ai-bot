@@ -1,4 +1,4 @@
-# 本地开发联调
+G# 本地开发联调
 
 当前 dev 环境只连接本地 MySQL 和 Redis，不连接真实 NapCat，不启用正式 `.bot.json`，不调用真实 Dify。
 
@@ -411,3 +411,165 @@ docker exec -it qqbot-mysql-dev mysql -uqqbot -pqqbot_dev_pwd qqbot -e "select i
 ```
 
 期望 `workflow_type=PASSIVE_DIFY_CHAT`；如果回复配图命中，`meme_id` 有值。
+
+## 10. 第七阶段主动插话 C 第一轮配置说明
+
+本轮只准备主动插话 C 的基础能力，尚未正式接入 `MessageRouterService`。普通群消息不会因为这些配置而真正触发主动插话发送，第二轮再接入主路由。
+
+### 10.1 机器人业务身份
+
+`qqbot.identity.display-name` 是业务显示名，不依赖真实 QQ 昵称。可以通过环境变量覆盖：
+
+```yaml
+qqbot:
+  identity:
+    display-name: ${QQBOT_DISPLAY_NAME:小黄}
+    aliases:
+      - ${QQBOT_ALIAS_PRIMARY:小黄}
+      - ${QQBOT_ALIAS_SECONDARY:黄哥}
+      - ${QQBOT_ALIAS_FALLBACK:机器人}
+```
+
+`aliases` 可以配置多个机器人别名，用于后续判断用户是不是在叫机器人。
+
+### 10.2 被动聊天触发词
+
+`qqbot.passive-chat.trigger-words` 用于配置不依赖真实 QQ 昵称的被动聊天触发词：
+
+```yaml
+qqbot:
+  passive-chat:
+    trigger-words:
+      - 小黄
+      - 黄哥
+      - 机器人
+```
+
+### 10.3 主动插话安全词
+
+主动插话安全词和被动聊天触发词分开配置：
+
+```yaml
+qqbot:
+  safety:
+    admin-only: true
+    active-chat-off-words:
+      - "#autochatoff"
+      - "#停用主动插话"
+      - "#别插话"
+      - "小黄闭嘴"
+    active-chat-on-words:
+      - "#autochaton"
+      - "#开启主动插话"
+      - "#可以说话了"
+      - "小黄说话"
+```
+
+当前 `admin-only` 默认是 `true`。本轮只提供识别能力，暂不修改数据库里的群开关。
+
+### 10.4 主动插话参数
+
+```yaml
+qqbot:
+  active-chat:
+    enabled: true
+    cooldown-seconds: 180
+    max-per-hour: 20
+    random-probability: 1.0
+    min-confidence: 0.6
+    min-message-length: 3
+    max-message-length: 80
+    allow-after-meme-sent: false
+    allow-after-bot-message: false
+```
+
+开发验收时 `random-probability` 可以设为 `1.0`。后续真实体验可调低，例如 `0.15` 到 `0.3`。
+
+### 10.5 Dify 工作流 C
+
+Dify 工作流 C 名称为 `active-chat-reply`。第七阶段第一轮只新增后端调用能力；第二轮已经接入 `MessageRouterService` 主路由。
+
+```yaml
+qqbot:
+  dify:
+    workflow:
+      active-chat: ${DIFY_WORKFLOW_ACTIVE_CHAT:active-chat-reply}
+    active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}
+```
+
+`DIFY_ACTIVE_CHAT_API_KEY` 必须使用环境变量，不要写入真实 Key。Dify C 输入里的 `groupId`、`userId` 会按字符串传给 Dify。
+
+## 11. 第七阶段主动插话 C 第二轮验收
+
+主动插话 C 现在已经接入 `MessageRouterService`，触发顺序固定为：
+
+```text
+去重 -> 群配置 -> 群总开关 -> 管理员指令/安全词 -> 被动聊天 B -> 普通表情包 A -> 主动插话 C -> 静默
+```
+
+也就是说，`atBot=true` 或 `botNicknameMatched=true` 时仍然优先进入被动聊天 B；普通消息如果命中表情包 A，会直接发送表情包，不会继续触发 C。只有 B 未命中、A 未发送，并且主动插话策略通过时，才会调用 Dify C。
+
+主动插话由这些配置控制：
+
+- `qqbot.active-chat.cooldown-seconds`：每个群主动插话冷却时间。
+- `qqbot.active-chat.max-per-hour`：每个群每小时最多主动插话次数。
+- `qqbot.active-chat.random-probability`：随机触发概率；开发验收可以设为 `1.0`，真实体验建议调低到 `0.15` 到 `0.3`。
+- `qqbot.active-chat.min-confidence`：Dify C 回复最低置信度。
+- `qqbot.safety.active-chat-off-words`：关闭主动插话，例如 `#autochatoff`。
+- `qqbot.safety.active-chat-on-words`：开启主动插话，例如 `#autochaton`。
+
+dev profile 下仍然使用 `MockMessageSender`，不会连接真实 QQ 或 NapCat。没有配置 `DIFY_ACTIVE_CHAT_API_KEY` 时，Dify C 会静默失败，不影响 A/B 主流程。
+
+如需本地调试 Dify C，请只通过环境变量提供 Key：
+
+```powershell
+$env:DIFY_BASE_URL="https://api.dify.ai/v1"
+$env:DIFY_ACTIVE_CHAT_API_KEY="你的工作流 C API Key"
+$env:DIFY_WORKFLOW_ACTIVE_CHAT="active-chat-reply"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev" "-Dspring-boot.run.arguments=--qqbot.dify.enabled=true --qqbot.active-chat.random-probability=1.0"
+```
+
+模拟一条可能触发 C 的普通群消息：
+
+```json
+{
+  "groupId": "10001",
+  "userId": "20001",
+  "messageId": "active-chat-test-001",
+  "rawMessage": "今天这局打得有点抽象",
+  "atBot": false,
+  "botNicknameMatched": false
+}
+```
+
+命中时 `/dev/simulate/group-message` 应能看到：
+
+```json
+{
+  "routeType": "ACTIVE_CHAT",
+  "responseType": "ACTIVE_CHAT",
+  "shouldSend": true,
+  "activeChatHit": true,
+  "activePolicyPassed": true,
+  "activeShouldReply": true,
+  "workflowType": "ACTIVE_DIFY_CHAT",
+  "replyText": "有值",
+  "activeConfidence": 0.8,
+  "silentReason": null
+}
+```
+
+主动插话成功发送后会写入 Redis 热层上下文，并调用 `ActiveChatPolicyService.markActiveChatSent(...)` 写入冷却和小时计数：
+
+```powershell
+docker exec -it qqbot-redis-dev redis-cli -n 1 LRANGE "qqbot:chat:ctx:10001" 0 -1
+docker exec -it qqbot-redis-dev redis-cli -n 3 KEYS "qqbot:active:*"
+```
+
+成功发送后也会写入 `trigger_log`，其中 `response_type=ACTIVE_CHAT`、`workflow_type=ACTIVE_DIFY_CHAT`：
+
+```powershell
+docker exec -it qqbot-mysql-dev mysql -uqqbot -pqqbot_dev_pwd qqbot -e "select id, group_id, user_id, message_id, response_type, response_text, workflow_type, success, error_msg, created_at from trigger_log order by id desc limit 10;"
+```
+
+如果策略拒绝、Dify C 失败、`shouldReply=false`、回复为空或置信度低于阈值，系统会返回 `SILENT`，并且不会写入 trigger_log、不会写主动插话冷却。

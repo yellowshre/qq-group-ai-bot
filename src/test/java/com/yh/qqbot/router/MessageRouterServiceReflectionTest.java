@@ -30,6 +30,7 @@ class MessageRouterServiceReflectionTest {
         assertThat(invoke(result, "chatConfidence")).isEqualTo(0.88);
         assertThat(invoke(result, "workflowType")).isEqualTo("PASSIVE_DIFY_CHAT");
         assertThat(invoke(result, "shouldSend")).isEqualTo(true);
+        verifyNoInteractions(fixture.activeChatPolicyService());
     }
 
     @Test
@@ -43,6 +44,7 @@ class MessageRouterServiceReflectionTest {
 
         assertThat(invoke(result, "routeType").toString()).isEqualTo("PASSIVE_CHAT");
         assertThat(invoke(result, "passiveChatHit")).isEqualTo(true);
+        verifyNoInteractions(fixture.activeChatPolicyService());
     }
 
     @Test
@@ -55,6 +57,109 @@ class MessageRouterServiceReflectionTest {
 
         assertThat(invoke(result, "passiveChatHit")).isEqualTo(false);
         verifyNoInteractions(fixture.difyWorkflowService());
+    }
+
+    @Test
+    void memeRouteWinsBeforeActiveChat() throws Exception {
+        Fixture fixture = fixture(true, true);
+        Object message = message(false, false, "plain active text");
+        stubMeme(fixture.memeMatchService(), "plain active text", 8L, "laugh", "C:/qqbot/memes/laugh.png");
+
+        Object result = route(fixture.router(), message);
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("MEME");
+        assertThat(invoke(result, "memeHit")).isEqualTo(true);
+        assertThat(invoke(result, "memeId")).isEqualTo(8L);
+        verifyNoInteractions(fixture.activeChatPolicyService(), fixture.difyWorkflowService());
+    }
+
+    @Test
+    void activeChatSuccessReturnsActiveChatResult() throws Exception {
+        Fixture fixture = fixture(true, true);
+        Object message = message(false, false, "ordinary active message");
+        stubNoMeme(fixture.memeMatchService(), "ordinary active message");
+        stubActivePolicy(fixture.activeChatPolicyService(), activePolicyAllowed());
+        stubActiveReply(fixture.difyWorkflowService(), activeReply("active reply", 0.91));
+
+        Object result = route(fixture.router(), message);
+        Object outbound = invoke(result, "outboundMessage");
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("ACTIVE_CHAT");
+        assertThat(invoke(result, "responseType")).isEqualTo("ACTIVE_CHAT");
+        assertThat(invoke(result, "shouldSend")).isEqualTo(true);
+        assertThat(invoke(result, "activeChatHit")).isEqualTo(true);
+        assertThat(invoke(result, "activePolicyPassed")).isEqualTo(true);
+        assertThat(invoke(result, "activeShouldReply")).isEqualTo(true);
+        assertThat(invoke(result, "activeConfidence")).isEqualTo(0.91);
+        assertThat(invoke(result, "workflowType")).isEqualTo("ACTIVE_DIFY_CHAT");
+        assertThat(invoke(result, "replyText")).isEqualTo("active reply");
+        assertThat(invoke(outbound, "text")).isEqualTo("active reply");
+    }
+
+    @Test
+    void activePolicyRejectedDoesNotCallDify() throws Exception {
+        Fixture fixture = fixture(true, true);
+        Object message = message(false, false, "ordinary active message");
+        stubNoMeme(fixture.memeMatchService(), "ordinary active message");
+        stubActivePolicy(fixture.activeChatPolicyService(), activePolicyRejected("COOLDOWN"));
+
+        Object result = route(fixture.router(), message);
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("SILENT");
+        assertThat(invoke(result, "activePolicyPassed")).isEqualTo(false);
+        assertThat(invoke(result, "activePolicyRejectReason")).isEqualTo("COOLDOWN");
+        assertThat(invoke(result, "silentReason")).isEqualTo("COOLDOWN");
+        verifyNoInteractions(fixture.difyWorkflowService());
+    }
+
+    @Test
+    void activeDifyShouldReplyFalseReturnsSilent() throws Exception {
+        Fixture fixture = fixture(true, true);
+        Object message = message(false, false, "ordinary active message");
+        stubNoMeme(fixture.memeMatchService(), "ordinary active message");
+        stubActivePolicy(fixture.activeChatPolicyService(), activePolicyAllowed());
+        stubActiveReply(fixture.difyWorkflowService(), activeRejected("SHOULD_REPLY_FALSE", "", 0.72));
+
+        Object result = route(fixture.router(), message);
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("SILENT");
+        assertThat(invoke(result, "activeChatHit")).isEqualTo(true);
+        assertThat(invoke(result, "activePolicyPassed")).isEqualTo(true);
+        assertThat(invoke(result, "activeShouldReply")).isEqualTo(false);
+        assertThat(invoke(result, "silentReason")).isEqualTo("SHOULD_REPLY_FALSE");
+    }
+
+    @Test
+    void activeDifyLowConfidenceReturnsSilent() throws Exception {
+        Fixture fixture = fixture(true, true);
+        Object message = message(false, false, "ordinary active message");
+        stubNoMeme(fixture.memeMatchService(), "ordinary active message");
+        stubActivePolicy(fixture.activeChatPolicyService(), activePolicyAllowed());
+        stubActiveReply(fixture.difyWorkflowService(), activeReply("maybe reply", 0.2));
+
+        Object result = route(fixture.router(), message);
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("SILENT");
+        assertThat(invoke(result, "activePolicyPassed")).isEqualTo(true);
+        assertThat(invoke(result, "activeShouldReply")).isEqualTo(false);
+        assertThat(invoke(result, "activeConfidence")).isEqualTo(0.2);
+        assertThat(invoke(result, "silentReason")).isEqualTo("LOW_CONFIDENCE");
+    }
+
+    @Test
+    void activeDifyExceptionReturnsSilent() throws Exception {
+        Fixture fixture = fixture(true, true);
+        Object message = message(false, false, "ordinary active message");
+        stubNoMeme(fixture.memeMatchService(), "ordinary active message");
+        stubActivePolicy(fixture.activeChatPolicyService(), activePolicyAllowed());
+        stubActiveReplyThrows(fixture.difyWorkflowService(), new RuntimeException("boom"));
+
+        Object result = route(fixture.router(), message);
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("SILENT");
+        assertThat(invoke(result, "activePolicyPassed")).isEqualTo(true);
+        assertThat(invoke(result, "activeShouldReply")).isEqualTo(false);
+        assertThat(invoke(result, "silentReason")).isEqualTo("DIFY_ERROR");
     }
 
     @Test
@@ -144,6 +249,25 @@ class MessageRouterServiceReflectionTest {
     }
 
     @Test
+    void afterSuccessfulActiveSendWritesContextPolicyAndTriggerLog() throws Exception {
+        Fixture fixture = fixture(true, true);
+        Object message = message(false, false, "ordinary active message");
+        stubNoMeme(fixture.memeMatchService(), "ordinary active message");
+        stubActivePolicy(fixture.activeChatPolicyService(), activePolicyAllowed());
+        stubActiveReply(fixture.difyWorkflowService(), activeReply("active reply", 0.91));
+        Object result = route(fixture.router(), message);
+
+        invoke(fixture.router(), "afterSend",
+                new Class<?>[]{cls("com.yh.qqbot.dto.BotGroupMessage"), cls("com.yh.qqbot.dto.RouteResult"), boolean.class},
+                message, result, true);
+
+        assertThat(fixture.chatContext().userMessages()).contains("20001:ordinary active message");
+        assertThat(fixture.chatContext().botReplies()).contains("小黄:active reply");
+        verifyActiveChatMarked(fixture.activeChatPolicyService());
+        verifyTriggerLogRecorded(fixture.triggerLogService(), message, result);
+    }
+
+    @Test
     void inboundAdapterSendsTextBeforeImageWhenOutboundContainsBoth() throws Exception {
         Object message = message(true, false, "hi");
         Object router = mockClass("com.yh.qqbot.router.MessageRouterService");
@@ -177,13 +301,17 @@ class MessageRouterServiceReflectionTest {
     }
 
     private Fixture fixture(boolean difyEnabled) throws Exception {
+        return fixture(difyEnabled, false);
+    }
+
+    private Fixture fixture(boolean difyEnabled, boolean activeChatEnabled) throws Exception {
         Object messageDedupService = proxy("com.yh.qqbot.service.rate.MessageDedupService", (method, args) -> {
             if ("firstSeen".equals(method.getName())) {
                 return true;
             }
             return defaultValue(method.getReturnType());
         });
-        Object groupConfig = groupConfig();
+        Object groupConfig = groupConfig(activeChatEnabled);
         Object groupConfigService = proxy("com.yh.qqbot.service.config.GroupConfigService", (method, args) -> {
             if ("getConfig".equals(method.getName())) {
                 return groupConfig;
@@ -206,6 +334,14 @@ class MessageRouterServiceReflectionTest {
         Object groupPersonaService = mockClass("com.yh.qqbot.service.chat.GroupPersonaService");
         Object difyWorkflowService = mockClass("com.yh.qqbot.service.chat.DifyWorkflowService");
         Object properties = properties(difyEnabled);
+        Object activeChatPolicyService = mockClass("com.yh.qqbot.service.active.ActiveChatPolicyService");
+        Object botIdentityService = cls("com.yh.qqbot.service.bot.BotIdentityService")
+                .getConstructor(cls("com.yh.qqbot.config.properties.QqBotProperties"))
+                .newInstance(properties);
+        Object botSafetyWordService = cls("com.yh.qqbot.service.bot.BotSafetyWordService")
+                .getConstructor(cls("com.yh.qqbot.config.properties.QqBotProperties"))
+                .newInstance(properties);
+        stubActivePolicy(activeChatPolicyService, activePolicyRejected("GROUP_ACTIVE_CHAT_DISABLED"));
 
         Object router = cls("com.yh.qqbot.router.MessageRouterService")
                 .getConstructor(
@@ -220,6 +356,9 @@ class MessageRouterServiceReflectionTest {
                         cls("com.yh.qqbot.service.log.TriggerLogService"),
                         cls("com.yh.qqbot.service.chat.GroupPersonaService"),
                         cls("com.yh.qqbot.service.chat.DifyWorkflowService"),
+                        cls("com.yh.qqbot.service.active.ActiveChatPolicyService"),
+                        cls("com.yh.qqbot.service.bot.BotIdentityService"),
+                        cls("com.yh.qqbot.service.bot.BotSafetyWordService"),
                         cls("com.yh.qqbot.config.properties.QqBotProperties"))
                 .newInstance(
                         messageDedupService,
@@ -233,6 +372,9 @@ class MessageRouterServiceReflectionTest {
                         triggerLogService,
                         groupPersonaService,
                         difyWorkflowService,
+                        activeChatPolicyService,
+                        botIdentityService,
+                        botSafetyWordService,
                         properties);
 
         whenInvoke(adminCommandService, "tryHandle",
@@ -240,8 +382,10 @@ class MessageRouterServiceReflectionTest {
                 new Object[]{message(true, false, "unused"), groupConfig},
                 notCommand());
         whenInvoke(groupPersonaService, "getPersona", new Class<?>[]{Long.class}, new Object[]{10001L}, "persona");
+        Mockito.clearInvocations(activeChatPolicyService);
 
-        return new Fixture(router, memeMatchService, difyWorkflowService, triggerLogService, chatContextState);
+        return new Fixture(router, memeMatchService, difyWorkflowService, activeChatPolicyService,
+                triggerLogService, chatContextState);
     }
 
     private Object route(Object router, Object message) throws Exception {
@@ -280,10 +424,35 @@ class MessageRouterServiceReflectionTest {
                 memeResult(memeId, sceneCode, filePath));
     }
 
+    private void stubActivePolicy(Object activeChatPolicyService, Object result) throws Exception {
+        whenInvokeAny(activeChatPolicyService, "evaluate",
+                new Class<?>[]{cls("com.yh.qqbot.dto.ActiveChatPolicyRequest")},
+                result);
+        Mockito.clearInvocations(activeChatPolicyService);
+    }
+
+    private void stubActiveReply(Object dify, Object result) throws Exception {
+        whenInvokeAny(dify, "generateActiveReply",
+                new Class<?>[]{cls("com.yh.qqbot.dto.ActiveChatRequest")},
+                result);
+        Mockito.clearInvocations(dify);
+    }
+
+    private void stubActiveReplyThrows(Object dify, RuntimeException exception) throws Exception {
+        Method method = dify.getClass().getMethod("generateActiveReply", cls("com.yh.qqbot.dto.ActiveChatRequest"));
+        when(method.invoke(dify, new Object[]{org.mockito.ArgumentMatchers.any()})).thenThrow(exception);
+        Mockito.clearInvocations(dify);
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private void whenInvoke(Object mock, String methodName, Class<?>[] parameterTypes, Object[] args, Object result) throws Exception {
         Method method = mock.getClass().getMethod(methodName, parameterTypes);
         when(method.invoke(mock, args)).thenReturn(result);
+    }
+
+    private void whenInvokeAny(Object mock, String methodName, Class<?>[] parameterTypes, Object result) throws Exception {
+        Method method = mock.getClass().getMethod(methodName, parameterTypes);
+        when(method.invoke(mock, new Object[]{org.mockito.ArgumentMatchers.any()})).thenReturn(result);
     }
 
     private Object chatContextProxy(ChatContextState state) throws Exception {
@@ -312,12 +481,12 @@ class MessageRouterServiceReflectionTest {
         return properties;
     }
 
-    private Object groupConfig() throws Exception {
+    private Object groupConfig(boolean activeChatEnabled) throws Exception {
         Object memoryMode = Enum.valueOf((Class<Enum>) cls("com.yh.qqbot.enums.MemoryMode"), "SHORT");
         return cls("com.yh.qqbot.dto.GroupConfigSnapshot")
                 .getConstructor(String.class, boolean.class, boolean.class, boolean.class,
                         String.class, String.class, String.class, cls("com.yh.qqbot.enums.MemoryMode"))
-                .newInstance("10001", true, true, false, null, "safe", "persona", memoryMode);
+                .newInstance("10001", true, true, activeChatEnabled, null, "safe", "persona", memoryMode);
     }
 
     private Object notCommand() throws Exception {
@@ -328,6 +497,30 @@ class MessageRouterServiceReflectionTest {
         return cls("com.yh.qqbot.dto.PassiveChatReply")
                 .getConstructor(String.class, double.class)
                 .newInstance(replyText, confidence);
+    }
+
+    private Object activePolicyAllowed() throws Exception {
+        return cls("com.yh.qqbot.dto.ActiveChatPolicyResult")
+                .getMethod("allowed", long.class, long.class)
+                .invoke(null, 180L, 20L);
+    }
+
+    private Object activePolicyRejected(String reason) throws Exception {
+        return cls("com.yh.qqbot.dto.ActiveChatPolicyResult")
+                .getMethod("rejected", String.class, boolean.class, long.class, long.class)
+                .invoke(null, reason, true, 180L, 20L);
+    }
+
+    private Object activeReply(String replyText, double confidence) throws Exception {
+        return cls("com.yh.qqbot.dto.ActiveChatReplyResult")
+                .getMethod("success", String.class, double.class)
+                .invoke(null, replyText, confidence);
+    }
+
+    private Object activeRejected(String reason, String replyText, double confidence) throws Exception {
+        return cls("com.yh.qqbot.dto.ActiveChatReplyResult")
+                .getMethod("rejected", String.class, String.class, double.class)
+                .invoke(null, reason, replyText, confidence);
     }
 
     private Object memeEmpty() throws Exception {
@@ -364,6 +557,11 @@ class MessageRouterServiceReflectionTest {
         invoke(verified, "record",
                 new Class<?>[]{cls("com.yh.qqbot.dto.BotGroupMessage"), cls("com.yh.qqbot.dto.RouteResult"), boolean.class, String.class},
                 message, result, true, null);
+    }
+
+    private void verifyActiveChatMarked(Object activeChatPolicyService) throws Exception {
+        Object verified = Mockito.verify(activeChatPolicyService);
+        invoke(verified, "markActiveChatSent", new Class<?>[]{Long.class}, 10001L);
     }
 
     private Object proxy(String className, Invocation invocation) throws Exception {
@@ -416,6 +614,7 @@ class MessageRouterServiceReflectionTest {
             Object router,
             Object memeMatchService,
             Object difyWorkflowService,
+            Object activeChatPolicyService,
             Object triggerLogService,
             ChatContextState chatContext) {
     }

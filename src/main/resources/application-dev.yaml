@@ -28,6 +28,44 @@ qqbot:
 
   default-persona: ${QQBOT_DEFAULT_PERSONA:你是一个说话简短、自然、略带吐槽但不恶意攻击人的 QQ 群机器人。}
 
+  identity:
+    display-name: ${QQBOT_DISPLAY_NAME:小黄}
+    aliases:
+      - ${QQBOT_ALIAS_PRIMARY:小黄}
+      - ${QQBOT_ALIAS_SECONDARY:黄哥}
+      - ${QQBOT_ALIAS_FALLBACK:机器人}
+    default-persona: ${QQBOT_DEFAULT_PERSONA:你是一个说话简短、自然、略带吐槽但不恶意攻击人的 QQ 群机器人。}
+
+  safety:
+    admin-only: true
+    active-chat-off-words:
+      - "#autochatoff"
+      - "#停用主动插话"
+      - "#别插话"
+      - "小黄闭嘴"
+    active-chat-on-words:
+      - "#autochaton"
+      - "#开启主动插话"
+      - "#可以说话了"
+      - "小黄说话"
+
+  passive-chat:
+    trigger-words:
+      - "小黄"
+      - "黄哥"
+      - "机器人"
+
+  active-chat:
+    enabled: true
+    cooldown-seconds: 180
+    max-per-hour: 20
+    random-probability: 1.0
+    min-confidence: 0.6
+    min-message-length: 3
+    max-message-length: 80
+    allow-after-meme-sent: false
+    allow-after-bot-message: false
+
   chat-context:
     key-prefix: "qqbot:chat:ctx:"
     max-size: 10
@@ -44,5 +82,7 @@ qqbot:
     workflow:
       meme-scene: ${DIFY_MEME_SCENE_WORKFLOW:meme-scene-recognizer}
       passive-chat: ${DIFY_PASSIVE_CHAT_WORKFLOW:passive-chat-reply}
+      active-chat: ${DIFY_ACTIVE_CHAT_WORKFLOW:active-chat-reply}
     timeout-ms: 30000
     passive-chat-min-confidence: 0.5
+    active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}

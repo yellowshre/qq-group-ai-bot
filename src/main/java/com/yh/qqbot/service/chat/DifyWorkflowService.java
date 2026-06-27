@@ -2,8 +2,11 @@ package com.yh.qqbot.service.chat;
 
 import com.yh.qqbot.adapter.dify.DifyClient;
 import com.yh.qqbot.config.properties.QqBotProperties;
+import com.yh.qqbot.dto.ActiveChatReplyResult;
+import com.yh.qqbot.dto.ActiveChatRequest;
 import com.yh.qqbot.dto.ChatPrompt;
 import com.yh.qqbot.dto.ChatReply;
+import com.yh.qqbot.dto.DifyActiveChatRequest;
 import com.yh.qqbot.dto.DifyMemeSceneRequest;
 import com.yh.qqbot.dto.DifyMemeSceneResponse;
 import com.yh.qqbot.dto.DifyPassiveChatRequest;
@@ -132,6 +135,62 @@ public class DifyWorkflowService {
                 .orElse(false);
     }
 
+    public ActiveChatReplyResult generateActiveReply(ActiveChatRequest request) {
+        QqBotProperties.Dify dify = properties.getDify();
+        if (!dify.isEnabled()) {
+            return ActiveChatReplyResult.rejected(ActiveChatReplyResult.DIFY_DISABLED);
+        }
+        if (!hasText(dify.getActiveChatApiKey())) {
+            return ActiveChatReplyResult.rejected(ActiveChatReplyResult.API_KEY_MISSING);
+        }
+
+        try {
+            DifyActiveChatRequest difyRequest = new DifyActiveChatRequest(
+                    request == null ? "" : request.text(),
+                    request == null ? "" : toInputString(request.groupId()),
+                    request == null ? "" : toInputString(request.userId()),
+                    request == null ? "" : request.botName(),
+                    request == null ? "" : request.persona(),
+                    request == null ? "" : request.recentMessages(),
+                    request == null ? "" : request.activeReason(),
+                    request == null ? "" : request.riskHint()
+            );
+            String difyUser = request == null ? null : toInputString(request.userId());
+            Optional<Map<String, Object>> response = difyClient.runWorkflow(
+                    dify.getActiveWorkflowId(),
+                    difyRequest.toInputs(),
+                    difyUser,
+                    dify.getActiveChatApiKey());
+            if (response.isEmpty()) {
+                return ActiveChatReplyResult.rejected(ActiveChatReplyResult.DIFY_ERROR);
+            }
+
+            Map<String, Object> outputs = outputs(response.get());
+            Boolean shouldReply = valueAsNullableBoolean(firstValue(outputs, "shouldReply", "should_reply"));
+            if (shouldReply == null) {
+                return ActiveChatReplyResult.rejected(ActiveChatReplyResult.INVALID_RESPONSE);
+            }
+            if (!shouldReply) {
+                return ActiveChatReplyResult.rejected(ActiveChatReplyResult.SHOULD_REPLY_FALSE);
+            }
+            String replyText = valueAsString(firstValue(outputs, "replyText", "reply_text")).strip();
+            if (replyText.isBlank()) {
+                return ActiveChatReplyResult.rejected(ActiveChatReplyResult.EMPTY_REPLY);
+            }
+            Double confidence = valueAsNullableDouble(firstValue(outputs, "confidence", "score"));
+            if (confidence == null) {
+                return ActiveChatReplyResult.rejected(ActiveChatReplyResult.INVALID_RESPONSE, replyText, 0);
+            }
+            if (confidence < properties.getActiveChat().getMinConfidence()) {
+                return ActiveChatReplyResult.rejected(ActiveChatReplyResult.LOW_CONFIDENCE, replyText, confidence);
+            }
+            return ActiveChatReplyResult.success(replyText, confidence);
+        } catch (Exception ex) {
+            log.warn("Dify active chat reply generation failed.", ex);
+            return ActiveChatReplyResult.rejected(ActiveChatReplyResult.DIFY_ERROR);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> outputs(Map<String, Object> response) {
         Object data = response.get("data");
@@ -180,6 +239,23 @@ public class DifyWorkflowService {
         }
     }
 
+    private Boolean valueAsNullableBoolean(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).strip();
+        if (text.equalsIgnoreCase("true") || text.equalsIgnoreCase("yes") || text.equals("1")) {
+            return true;
+        }
+        if (text.equalsIgnoreCase("false") || text.equalsIgnoreCase("no") || text.equals("0")) {
+            return false;
+        }
+        return null;
+    }
+
     private Object firstValue(Map<String, Object> values, String... names) {
         for (String name : names) {
             if (values.containsKey(name)) {
@@ -191,6 +267,10 @@ public class DifyWorkflowService {
 
     private String toInputString(Long value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private Long parseLong(String value) {

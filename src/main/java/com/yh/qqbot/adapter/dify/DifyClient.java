@@ -32,12 +32,20 @@ public class DifyClient {
     }
 
     public Optional<Map<String, Object>> runWorkflow(String workflowId, Map<String, Object> inputs, String userId) {
+        return runWorkflow(workflowId, inputs, userId, properties.getDify().getApiKey());
+    }
+
+    public Optional<Map<String, Object>> runWorkflow(
+            String workflowId,
+            Map<String, Object> inputs,
+            String userId,
+            String apiKey) {
         QqBotProperties.Dify dify = properties.getDify();
         if (!dify.isEnabled()) {
             log.debug("Skip Dify workflow because Dify is disabled.");
             return Optional.empty();
         }
-        if (workflowId == null || workflowId.isBlank() || dify.getApiKey() == null || dify.getApiKey().isBlank()) {
+        if (workflowId == null || workflowId.isBlank() || apiKey == null || apiKey.isBlank()) {
             log.debug("Skip Dify workflow because workflow id or api key is blank.");
             return Optional.empty();
         }
@@ -53,7 +61,7 @@ public class DifyClient {
             Map<String, Object> response = restClient.post()
                     .uri("/workflows/run")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .header("Authorization", "Bearer " + dify.getApiKey())
+                    .header("Authorization", "Bearer " + apiKey)
                     .body(body)
                     .retrieve()
                     .body(Map.class);

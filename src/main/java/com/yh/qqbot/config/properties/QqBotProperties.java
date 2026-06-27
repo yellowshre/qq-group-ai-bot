@@ -21,6 +21,14 @@ public class QqBotProperties {
     private String defaultPersona = BUILT_IN_DEFAULT_PERSONA;
     private String defaultSafeReply = "OK, I will stay quiet for a while.";
     @NotNull
+    private Identity identity = new Identity();
+    @NotNull
+    private Safety safety = new Safety();
+    @NotNull
+    private PassiveChat passiveChat = new PassiveChat();
+    @NotNull
+    private ActiveChat activeChat = new ActiveChat();
+    @NotNull
     private OneBot onebot = new OneBot();
     @NotNull
     private Redis redis = new Redis();
@@ -75,6 +83,38 @@ public class QqBotProperties {
 
     public void setDefaultSafeReply(String defaultSafeReply) {
         this.defaultSafeReply = defaultSafeReply;
+    }
+
+    public Identity getIdentity() {
+        return identity;
+    }
+
+    public void setIdentity(Identity identity) {
+        this.identity = identity == null ? new Identity() : identity;
+    }
+
+    public Safety getSafety() {
+        return safety;
+    }
+
+    public void setSafety(Safety safety) {
+        this.safety = safety == null ? new Safety() : safety;
+    }
+
+    public PassiveChat getPassiveChat() {
+        return passiveChat;
+    }
+
+    public void setPassiveChat(PassiveChat passiveChat) {
+        this.passiveChat = passiveChat == null ? new PassiveChat() : passiveChat;
+    }
+
+    public ActiveChat getActiveChat() {
+        return activeChat;
+    }
+
+    public void setActiveChat(ActiveChat activeChat) {
+        this.activeChat = activeChat == null ? new ActiveChat() : activeChat;
     }
 
     public OneBot getOnebot() {
@@ -139,6 +179,176 @@ public class QqBotProperties {
 
     public void setAsync(Async async) {
         this.async = async;
+    }
+
+    public static class Identity {
+        private String displayName = "\u5c0f\u9ec4";
+        private List<String> aliases = new ArrayList<>(List.of("\u5c0f\u9ec4", "\u9ec4\u54e5", "\u673a\u5668\u4eba"));
+        private String defaultPersona = BUILT_IN_DEFAULT_PERSONA;
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public void setDisplayName(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public List<String> getAliases() {
+            return aliases;
+        }
+
+        public void setAliases(List<String> aliases) {
+            this.aliases = aliases == null ? new ArrayList<>() : new ArrayList<>(aliases);
+        }
+
+        public String getDefaultPersona() {
+            return defaultPersona;
+        }
+
+        public void setDefaultPersona(String defaultPersona) {
+            this.defaultPersona = defaultPersona;
+        }
+    }
+
+    public static class Safety {
+        private boolean adminOnly = true;
+        private List<String> activeChatOffWords = new ArrayList<>(List.of(
+                "#autochatoff",
+                "#\u505c\u7528\u4e3b\u52a8\u63d2\u8bdd",
+                "#\u522b\u63d2\u8bdd",
+                "\u5c0f\u9ec4\u95ed\u5634"
+        ));
+        private List<String> activeChatOnWords = new ArrayList<>(List.of(
+                "#autochaton",
+                "#\u5f00\u542f\u4e3b\u52a8\u63d2\u8bdd",
+                "#\u53ef\u4ee5\u8bf4\u8bdd\u4e86",
+                "\u5c0f\u9ec4\u8bf4\u8bdd"
+        ));
+
+        public boolean isAdminOnly() {
+            return adminOnly;
+        }
+
+        public void setAdminOnly(boolean adminOnly) {
+            this.adminOnly = adminOnly;
+        }
+
+        public List<String> getActiveChatOffWords() {
+            return activeChatOffWords;
+        }
+
+        public void setActiveChatOffWords(List<String> activeChatOffWords) {
+            this.activeChatOffWords = activeChatOffWords == null ? new ArrayList<>() : new ArrayList<>(activeChatOffWords);
+        }
+
+        public List<String> getActiveChatOnWords() {
+            return activeChatOnWords;
+        }
+
+        public void setActiveChatOnWords(List<String> activeChatOnWords) {
+            this.activeChatOnWords = activeChatOnWords == null ? new ArrayList<>() : new ArrayList<>(activeChatOnWords);
+        }
+    }
+
+    public static class PassiveChat {
+        private List<String> triggerWords = new ArrayList<>(List.of("\u5c0f\u9ec4", "\u9ec4\u54e5", "\u673a\u5668\u4eba"));
+
+        public List<String> getTriggerWords() {
+            return triggerWords;
+        }
+
+        public void setTriggerWords(List<String> triggerWords) {
+            this.triggerWords = triggerWords == null ? new ArrayList<>() : new ArrayList<>(triggerWords);
+        }
+    }
+
+    public static class ActiveChat {
+        private boolean enabled = true;
+        @Min(1)
+        private long cooldownSeconds = 180;
+        @Min(0)
+        private long maxPerHour = 20;
+        private double randomProbability = 1.0;
+        private double minConfidence = 0.6;
+        @Min(1)
+        private int minMessageLength = 3;
+        @Min(1)
+        private int maxMessageLength = 80;
+        private boolean allowAfterMemeSent = false;
+        private boolean allowAfterBotMessage = false;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public long getCooldownSeconds() {
+            return cooldownSeconds;
+        }
+
+        public void setCooldownSeconds(long cooldownSeconds) {
+            this.cooldownSeconds = cooldownSeconds;
+        }
+
+        public long getMaxPerHour() {
+            return maxPerHour;
+        }
+
+        public void setMaxPerHour(long maxPerHour) {
+            this.maxPerHour = maxPerHour;
+        }
+
+        public double getRandomProbability() {
+            return randomProbability;
+        }
+
+        public void setRandomProbability(double randomProbability) {
+            this.randomProbability = randomProbability;
+        }
+
+        public double getMinConfidence() {
+            return minConfidence;
+        }
+
+        public void setMinConfidence(double minConfidence) {
+            this.minConfidence = minConfidence;
+        }
+
+        public int getMinMessageLength() {
+            return minMessageLength;
+        }
+
+        public void setMinMessageLength(int minMessageLength) {
+            this.minMessageLength = minMessageLength;
+        }
+
+        public int getMaxMessageLength() {
+            return maxMessageLength;
+        }
+
+        public void setMaxMessageLength(int maxMessageLength) {
+            this.maxMessageLength = maxMessageLength;
+        }
+
+        public boolean isAllowAfterMemeSent() {
+            return allowAfterMemeSent;
+        }
+
+        public void setAllowAfterMemeSent(boolean allowAfterMemeSent) {
+            this.allowAfterMemeSent = allowAfterMemeSent;
+        }
+
+        public boolean isAllowAfterBotMessage() {
+            return allowAfterBotMessage;
+        }
+
+        public void setAllowAfterBotMessage(boolean allowAfterBotMessage) {
+            this.allowAfterBotMessage = allowAfterBotMessage;
+        }
     }
 
     public static class OneBot {
@@ -395,6 +605,7 @@ public class QqBotProperties {
         private String sceneWorkflowId = "";
         private String chatWorkflowId = "";
         private String activeWorkflowId = "";
+        private String activeChatApiKey = "";
         @NotNull
         private Workflow workflow = new Workflow();
         @Min(1)
@@ -442,11 +653,25 @@ public class QqBotProperties {
         }
 
         public String getActiveWorkflowId() {
-            return hasText(activeWorkflowId) ? activeWorkflowId : workflow.getActive();
+            if (hasText(activeWorkflowId)) {
+                return activeWorkflowId;
+            }
+            if (hasText(workflow.getActive())) {
+                return workflow.getActive();
+            }
+            return workflow.getActiveChat();
         }
 
         public void setActiveWorkflowId(String activeWorkflowId) {
             this.activeWorkflowId = activeWorkflowId;
+        }
+
+        public String getActiveChatApiKey() {
+            return activeChatApiKey;
+        }
+
+        public void setActiveChatApiKey(String activeChatApiKey) {
+            this.activeChatApiKey = activeChatApiKey;
         }
 
         public String getPassiveChatWorkflowId() {
@@ -495,6 +720,7 @@ public class QqBotProperties {
         private String passiveChat = "";
         private String chat = "";
         private String active = "";
+        private String activeChat = "";
 
         public String getMemeScene() {
             return memeScene;
@@ -526,6 +752,14 @@ public class QqBotProperties {
 
         public void setActive(String active) {
             this.active = active;
+        }
+
+        public String getActiveChat() {
+            return activeChat;
+        }
+
+        public void setActiveChat(String activeChat) {
+            this.activeChat = activeChat;
         }
     }
 

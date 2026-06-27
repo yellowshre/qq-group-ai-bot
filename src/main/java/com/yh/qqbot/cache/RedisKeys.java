@@ -55,6 +55,14 @@ public final class RedisKeys {
         return "rate:chat:active:" + groupId;
     }
 
+    public static String activeChatCooldown(String groupId) {
+        return "qqbot:active:cooldown:" + groupId;
+    }
+
+    public static String activeChatHour(String groupId, String hour) {
+        return "qqbot:active:hour:" + groupId + ":" + hour;
+    }
+
     public static String activeDecision(String fingerprint) {
         return "decision:active:" + fingerprint;
     }
