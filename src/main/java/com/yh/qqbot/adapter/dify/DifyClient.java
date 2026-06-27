@@ -31,10 +31,6 @@ public class DifyClient {
                 .build();
     }
 
-    public Optional<Map<String, Object>> runWorkflow(String workflowId, Map<String, Object> inputs, String userId) {
-        return runWorkflow(workflowId, inputs, userId, properties.getDify().getApiKey());
-    }
-
     public Optional<Map<String, Object>> runWorkflow(
             String workflowId,
             Map<String, Object> inputs,

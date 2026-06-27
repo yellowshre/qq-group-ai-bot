@@ -601,10 +601,8 @@ public class QqBotProperties {
     public static class Dify {
         private boolean enabled = false;
         private String baseUrl = "http://127.0.0.1:5001";
-        private String apiKey = "";
-        private String sceneWorkflowId = "";
-        private String chatWorkflowId = "";
-        private String activeWorkflowId = "";
+        private String memeSceneApiKey = "";
+        private String passiveChatApiKey = "";
         private String activeChatApiKey = "";
         @NotNull
         private Workflow workflow = new Workflow();
@@ -628,42 +626,28 @@ public class QqBotProperties {
             this.baseUrl = baseUrl;
         }
 
-        public String getApiKey() {
-            return apiKey;
+        public String getMemeSceneApiKey() {
+            return memeSceneApiKey;
         }
 
-        public void setApiKey(String apiKey) {
-            this.apiKey = apiKey;
+        public void setMemeSceneApiKey(String memeSceneApiKey) {
+            this.memeSceneApiKey = memeSceneApiKey;
+        }
+
+        public String getPassiveChatApiKey() {
+            return passiveChatApiKey;
+        }
+
+        public void setPassiveChatApiKey(String passiveChatApiKey) {
+            this.passiveChatApiKey = passiveChatApiKey;
         }
 
         public String getSceneWorkflowId() {
-            return hasText(sceneWorkflowId) ? sceneWorkflowId : workflow.getMemeScene();
-        }
-
-        public void setSceneWorkflowId(String sceneWorkflowId) {
-            this.sceneWorkflowId = sceneWorkflowId;
-        }
-
-        public String getChatWorkflowId() {
-            return hasText(chatWorkflowId) ? chatWorkflowId : workflow.getChat();
-        }
-
-        public void setChatWorkflowId(String chatWorkflowId) {
-            this.chatWorkflowId = chatWorkflowId;
+            return workflow.getMemeScene();
         }
 
         public String getActiveWorkflowId() {
-            if (hasText(activeWorkflowId)) {
-                return activeWorkflowId;
-            }
-            if (hasText(workflow.getActive())) {
-                return workflow.getActive();
-            }
             return workflow.getActiveChat();
-        }
-
-        public void setActiveWorkflowId(String activeWorkflowId) {
-            this.activeWorkflowId = activeWorkflowId;
         }
 
         public String getActiveChatApiKey() {
@@ -709,17 +693,11 @@ public class QqBotProperties {
         public void setPassiveChatMinConfidence(double passiveChatMinConfidence) {
             this.passiveChatMinConfidence = passiveChatMinConfidence;
         }
-
-        private boolean hasText(String value) {
-            return value != null && !value.isBlank();
-        }
     }
 
     public static class Workflow {
         private String memeScene = "";
         private String passiveChat = "";
-        private String chat = "";
-        private String active = "";
         private String activeChat = "";
 
         public String getMemeScene() {
@@ -736,22 +714,6 @@ public class QqBotProperties {
 
         public void setPassiveChat(String passiveChat) {
             this.passiveChat = passiveChat;
-        }
-
-        public String getChat() {
-            return chat;
-        }
-
-        public void setChat(String chat) {
-            this.chat = chat;
-        }
-
-        public String getActive() {
-            return active;
-        }
-
-        public void setActive(String active) {
-            this.active = active;
         }
 
         public String getActiveChat() {

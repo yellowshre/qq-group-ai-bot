@@ -38,14 +38,15 @@ public class DifyWorkflowService {
     }
 
     public Optional<SceneDecision> recognizeMemeScene(String text, Long groupId, Long userId) {
-        if (!properties.getDify().isEnabled()) {
+        QqBotProperties.Dify dify = properties.getDify();
+        if (!dify.isEnabled() || !hasText(dify.getMemeSceneApiKey())) {
             return Optional.empty();
         }
 
         try {
             DifyMemeSceneRequest request = new DifyMemeSceneRequest(text, toInputString(groupId), toInputString(userId));
             String difyUser = userId == null ? null : String.valueOf(userId);
-            return difyClient.runWorkflow(properties.getDify().getSceneWorkflowId(), request.toInputs(), difyUser)
+            return difyClient.runWorkflow(dify.getSceneWorkflowId(), request.toInputs(), difyUser, dify.getMemeSceneApiKey())
                     .map(this::outputs)
                     .map(outputs -> new DifyMemeSceneResponse(
                             valueAsString(firstValue(outputs, "sceneCode", "scene_code")),
@@ -66,7 +67,8 @@ public class DifyWorkflowService {
             String botName,
             String persona,
             List<String> recentMessages) {
-        if (!properties.getDify().isEnabled()) {
+        QqBotProperties.Dify dify = properties.getDify();
+        if (!dify.isEnabled() || !hasText(dify.getPassiveChatApiKey())) {
             return Optional.empty();
         }
 
@@ -79,7 +81,11 @@ public class DifyWorkflowService {
                     persona,
                     recentMessages);
             String difyUser = userId == null ? null : String.valueOf(userId);
-            return difyClient.runWorkflow(properties.getDify().getPassiveChatWorkflowId(), request.toInputs(), difyUser)
+            return difyClient.runWorkflow(
+                            dify.getPassiveChatWorkflowId(),
+                            request.toInputs(),
+                            difyUser,
+                            dify.getPassiveChatApiKey())
                     .map(this::outputs)
                     .map(outputs -> new DifyPassiveChatResponse(
                             valueAsString(firstValue(outputs, "replyText", "reply_text")),
@@ -98,41 +104,25 @@ public class DifyWorkflowService {
         if (!properties.getDify().isEnabled()) {
             return Optional.of(new ChatReply("收到：" + prompt.currentMessage(), "stub"));
         }
-
-        Map<String, Object> inputs = Map.of(
-                "groupId", prompt.groupId(),
-                "triggerType", prompt.triggerType(),
-                "persona", prompt.persona(),
-                "hotContext", prompt.hotContext(),
-                "coldSummaries", prompt.coldSummaries(),
-                "currentMessage", prompt.currentMessage()
-        );
-        return difyClient.runWorkflow(properties.getDify().getChatWorkflowId(), inputs, userId)
-                .map(this::outputs)
-                .map(outputs -> new ChatReply(
-                        valueAsString(outputs.get("replyText")),
-                        valueAsString(outputs.get("sceneCode"))
-                ))
-                .filter(ChatReply::hasText);
+        List<String> recentMessages = new java.util.ArrayList<>();
+        if (prompt.hotContext() != null) {
+            recentMessages.addAll(prompt.hotContext());
+        }
+        if (prompt.coldSummaries() != null) {
+            recentMessages.addAll(prompt.coldSummaries());
+        }
+        return generatePassiveReply(
+                prompt.currentMessage(),
+                parseLong(prompt.groupId()),
+                parseLong(userId),
+                botName(),
+                prompt.persona(),
+                recentMessages)
+                .map(reply -> new ChatReply(reply.replyText(), "passive-chat"));
     }
 
     public boolean shouldActiveJoin(String groupId, String persona, String currentMessage, java.util.List<String> recentMessages) {
-        if (!properties.getDify().isEnabled()) {
-            return false;
-        }
-
-        Map<String, Object> inputs = Map.of(
-                "groupId", groupId,
-                "persona", persona,
-                "currentMessage", currentMessage == null ? "" : currentMessage,
-                "recentMessages", recentMessages
-        );
-        return difyClient.runWorkflow(properties.getDify().getActiveWorkflowId(), inputs, groupId)
-                .map(this::outputs)
-                .map(outputs -> valueAsString(outputs.getOrDefault("answer", outputs.get("result"))))
-                .map(String::strip)
-                .map(answer -> answer.equals("是") || answer.equalsIgnoreCase("yes") || answer.equalsIgnoreCase("true"))
-                .orElse(false);
+        return false;
     }
 
     public ActiveChatReplyResult generateActiveReply(ActiveChatRequest request) {
@@ -267,6 +257,18 @@ public class DifyWorkflowService {
 
     private String toInputString(Long value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private String botName() {
+        String configured = properties.getIdentity().getDisplayName();
+        if (hasText(configured)) {
+            return configured.strip();
+        }
+        return properties.getNicknames().stream()
+                .filter(this::hasText)
+                .findFirst()
+                .map(String::strip)
+                .orElse("\u5c0f\u9ec4");
     }
 
     private boolean hasText(String value) {

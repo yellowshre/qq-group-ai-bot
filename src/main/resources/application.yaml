@@ -97,15 +97,15 @@ qqbot:
   dify:
     enabled: ${DIFY_ENABLED:false}
     base-url: ${DIFY_BASE_URL:http://127.0.0.1:5001}
-    api-key: ${DIFY_API_KEY:}
     workflow:
-      meme-scene: ${DIFY_WORKFLOW_MEME_SCENE:}
-      passive-chat: ${DIFY_WORKFLOW_PASSIVE_CHAT:}
-      chat: ${DIFY_WORKFLOW_CHAT:}
-      active-chat: ${DIFY_WORKFLOW_ACTIVE_CHAT:}
+      meme-scene: ${DIFY_MEME_SCENE_WORKFLOW:}
+      passive-chat: ${DIFY_PASSIVE_CHAT_WORKFLOW:}
+      active-chat: ${DIFY_ACTIVE_CHAT_WORKFLOW:}
+    meme-scene-api-key: ${DIFY_MEME_SCENE_API_KEY:}
+    passive-chat-api-key: ${DIFY_PASSIVE_CHAT_API_KEY:}
+    active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}
     timeout-ms: ${DIFY_TIMEOUT_MS:30000}
     passive-chat-min-confidence: ${DIFY_PASSIVE_CHAT_MIN_CONFIDENCE:0.5}
-    active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}
   async:
     core-pool-size: ${QQBOT_ASYNC_CORE_POOL_SIZE:4}
     max-pool-size: ${QQBOT_ASYNC_MAX_POOL_SIZE:12}

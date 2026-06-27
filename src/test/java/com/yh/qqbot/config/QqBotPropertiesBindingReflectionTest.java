@@ -21,7 +21,11 @@ class QqBotPropertiesBindingReflectionTest {
                 .withProperty("qqbot.active-chat.max-per-hour", "20")
                 .withProperty("qqbot.active-chat.random-probability", "0.75")
                 .withProperty("qqbot.active-chat.min-confidence", "0.6")
+                .withProperty("qqbot.dify.workflow.meme-scene", "meme-scene-recognizer")
+                .withProperty("qqbot.dify.workflow.passive-chat", "passive-chat-reply")
                 .withProperty("qqbot.dify.workflow.active-chat", "active-chat-reply")
+                .withProperty("qqbot.dify.meme-scene-api-key", "test-meme-key")
+                .withProperty("qqbot.dify.passive-chat-api-key", "test-passive-key")
                 .withProperty("qqbot.dify.active-chat-api-key", "test-active-key");
 
         Object properties = Binder.get(env).bind("qqbot", Bindable.of(cls("com.yh.qqbot.config.properties.QqBotProperties"))).get();
@@ -38,7 +42,11 @@ class QqBotPropertiesBindingReflectionTest {
         assertThat(invoke(activeChat, "getMaxPerHour")).isEqualTo(20L);
         assertThat(invoke(activeChat, "getRandomProbability")).isEqualTo(0.75);
         assertThat(invoke(activeChat, "getMinConfidence")).isEqualTo(0.6);
+        assertThat(invoke(dify, "getSceneWorkflowId")).isEqualTo("meme-scene-recognizer");
+        assertThat(invoke(dify, "getPassiveChatWorkflowId")).isEqualTo("passive-chat-reply");
         assertThat(invoke(dify, "getActiveWorkflowId")).isEqualTo("active-chat-reply");
+        assertThat(invoke(dify, "getMemeSceneApiKey")).isEqualTo("test-meme-key");
+        assertThat(invoke(dify, "getPassiveChatApiKey")).isEqualTo("test-passive-key");
         assertThat(invoke(dify, "getActiveChatApiKey")).isEqualTo("test-active-key");
     }
 

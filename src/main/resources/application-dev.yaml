@@ -78,11 +78,12 @@ qqbot:
   dify:
     enabled: ${DIFY_ENABLED:false}
     base-url: ${DIFY_BASE_URL:https://api.dify.ai/v1}
-    api-key: ${DIFY_API_KEY:}
     workflow:
       meme-scene: ${DIFY_MEME_SCENE_WORKFLOW:meme-scene-recognizer}
       passive-chat: ${DIFY_PASSIVE_CHAT_WORKFLOW:passive-chat-reply}
       active-chat: ${DIFY_ACTIVE_CHAT_WORKFLOW:active-chat-reply}
+    meme-scene-api-key: ${DIFY_MEME_SCENE_API_KEY:}
+    passive-chat-api-key: ${DIFY_PASSIVE_CHAT_API_KEY:}
+    active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}
     timeout-ms: 30000
     passive-chat-min-confidence: 0.5
-    active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}

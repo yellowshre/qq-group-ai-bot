@@ -39,7 +39,7 @@ class DifyWorkflowServiceReflectionTest {
         assertThat(inputs.get("groupId")).isInstanceOf(String.class).isEqualTo("10001");
         assertThat(inputs.get("userId")).isInstanceOf(String.class).isEqualTo("20001");
         assertThat(inputs.get("recentMessages")).isInstanceOf(String.class).isEqualTo("before");
-        stubRunWorkflow(client, "passive-chat-reply", inputs, "20001",
+        stubRunWorkflow(client, "passive-chat-reply", inputs, "20001", "passive-key",
                 Optional.of(difyResponse(Map.of("replyText", "hi there", "confidence", 0.88))));
         Object service = service(client, properties);
 
@@ -57,7 +57,7 @@ class DifyWorkflowServiceReflectionTest {
         Object client = difyClientMock();
         Object properties = properties(true, "passive-chat-reply");
         Map<String, Object> inputs = passiveInputs("hello", 10001L, 20001L, "bot", "persona", List.of());
-        stubRunWorkflow(client, "passive-chat-reply", inputs, "20001",
+        stubRunWorkflow(client, "passive-chat-reply", inputs, "20001", "passive-key",
                 Optional.of(difyResponse(Map.of("replyText", "", "confidence", 0.88))));
         Object service = service(client, properties);
 
@@ -74,7 +74,7 @@ class DifyWorkflowServiceReflectionTest {
         Map<String, Object> inputs = sceneInputs("funny", 10001L, 20001L);
         assertThat(inputs.get("groupId")).isInstanceOf(String.class).isEqualTo("10001");
         assertThat(inputs.get("userId")).isInstanceOf(String.class).isEqualTo("20001");
-        stubRunWorkflow(client, "meme-scene", inputs, "20001",
+        stubRunWorkflow(client, "meme-scene", inputs, "20001", "meme-key",
                 Optional.of(difyResponse(Map.of("sceneCode", "laugh", "confidence", 0.88))));
         Object service = service(client, properties);
 
@@ -93,7 +93,7 @@ class DifyWorkflowServiceReflectionTest {
         Object client = difyClientMock();
         Object properties = properties(true, "passive-chat-reply");
         Map<String, Object> inputs = passiveInputs("hello", 10001L, 20001L, "bot", "persona", List.of());
-        stubRunWorkflowException(client, "passive-chat-reply", inputs, "20001");
+        stubRunWorkflowException(client, "passive-chat-reply", inputs, "20001", "passive-key");
         Object service = service(client, properties);
 
         Optional<?> result = (Optional<?>) invoke(service, "generatePassiveReply", passiveReplyTypes(),
@@ -109,6 +109,8 @@ class DifyWorkflowServiceReflectionTest {
         Object workflow = invoke(dify, "getWorkflow");
         invoke(workflow, "setPassiveChat", new Class<?>[]{String.class}, passiveChatWorkflowId);
         invoke(workflow, "setMemeScene", new Class<?>[]{String.class}, "meme-scene");
+        invoke(dify, "setMemeSceneApiKey", new Class<?>[]{String.class}, "meme-key");
+        invoke(dify, "setPassiveChatApiKey", new Class<?>[]{String.class}, "passive-key");
         return properties;
     }
 
@@ -125,17 +127,28 @@ class DifyWorkflowServiceReflectionTest {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void stubRunWorkflow(Object client, String workflowId, Map<String, Object> inputs, String userId, Optional<?> response)
+    private void stubRunWorkflow(
+            Object client,
+            String workflowId,
+            Map<String, Object> inputs,
+            String userId,
+            String apiKey,
+            Optional<?> response)
             throws Exception {
-        Method method = client.getClass().getMethod("runWorkflow", String.class, Map.class, String.class);
-        when((Optional) method.invoke(client, workflowId, inputs, userId)).thenReturn((Optional) response);
+        Method method = client.getClass().getMethod("runWorkflow", String.class, Map.class, String.class, String.class);
+        when((Optional) method.invoke(client, workflowId, inputs, userId, apiKey)).thenReturn((Optional) response);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private void stubRunWorkflowException(Object client, String workflowId, Map<String, Object> inputs, String userId)
+    private void stubRunWorkflowException(
+            Object client,
+            String workflowId,
+            Map<String, Object> inputs,
+            String userId,
+            String apiKey)
             throws Exception {
-        Method method = client.getClass().getMethod("runWorkflow", String.class, Map.class, String.class);
-        when((Optional) method.invoke(client, workflowId, inputs, userId)).thenThrow(new RuntimeException("timeout"));
+        Method method = client.getClass().getMethod("runWorkflow", String.class, Map.class, String.class, String.class);
+        when((Optional) method.invoke(client, workflowId, inputs, userId, apiKey)).thenThrow(new RuntimeException("timeout"));
     }
 
     private Map<String, Object> passiveInputs(
