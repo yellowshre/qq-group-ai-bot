@@ -125,7 +125,17 @@ class ActiveChatPolicyServiceReflectionTest {
     }
 
     @Test
-    void markActiveChatSentWritesCooldownAndHourlyCounter() throws Exception {
+    void rejectsWhenDailyLimitReached() throws Exception {
+        Fixture fixture = fixture();
+        when(fixture.valueOps().get(startsWith("qqbot:active:day:10001:"))).thenReturn("80");
+
+        Object result = evaluate(fixture.service(), request());
+
+        assertRejected(result, "DAILY_LIMIT");
+    }
+
+    @Test
+    void markActiveChatSentWritesCooldownHourlyAndDailyCounter() throws Exception {
         Fixture fixture = fixture();
         when(fixture.valueOps().increment(anyString())).thenReturn(1L);
 
@@ -134,6 +144,8 @@ class ActiveChatPolicyServiceReflectionTest {
         verify(fixture.valueOps()).set("qqbot:active:cooldown:10001", "1", Duration.ofSeconds(180));
         verify(fixture.valueOps()).increment(startsWith("qqbot:active:hour:10001:"));
         verify(fixture.redis()).expire(startsWith("qqbot:active:hour:10001:"), eq(Duration.ofHours(2)));
+        verify(fixture.valueOps()).increment(startsWith("qqbot:active:day:10001:"));
+        verify(fixture.redis()).expire(startsWith("qqbot:active:day:10001:"), eq(Duration.ofDays(2)));
     }
 
     private void assertRejected(Object result, String rejectReason) throws Exception {
@@ -182,6 +194,7 @@ class ActiveChatPolicyServiceReflectionTest {
         set(activeChat, "setEnabled", boolean.class, true);
         set(activeChat, "setCooldownSeconds", long.class, 180L);
         set(activeChat, "setMaxPerHour", long.class, 20L);
+        set(activeChat, "setMaxPerDay", long.class, 80L);
         set(activeChat, "setRandomProbability", double.class, 1.0);
         set(activeChat, "setMinMessageLength", int.class, 3);
         set(activeChat, "setMaxMessageLength", int.class, 80);

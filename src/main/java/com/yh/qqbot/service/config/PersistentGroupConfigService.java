@@ -89,7 +89,7 @@ public class PersistentGroupConfigService implements GroupConfigService {
             if (json == null || json.isBlank()) {
                 return null;
             }
-            return objectMapper.readValue(json, GroupConfigSnapshot.class);
+            return normalizeSnapshot(objectMapper.readValue(json, GroupConfigSnapshot.class));
         } catch (Exception ex) {
             log.debug("Read group config cache failed. groupId={}", groupId, ex);
             return null;
@@ -106,11 +106,17 @@ public class PersistentGroupConfigService implements GroupConfigService {
     }
 
     private GroupConfigSnapshot defaultConfig(String groupId) {
+        QqBotProperties.ActiveChat activeChat = properties.getActiveChat();
         return new GroupConfigSnapshot(
                 groupId,
                 true,
                 true,
+                true,
+                true,
                 false,
+                Math.max(1, activeChat.getCooldownSeconds()),
+                Math.max(0, activeChat.getMaxPerHour()),
+                Math.max(0, activeChat.getMaxPerDay()),
                 null,
                 properties.getDefaultSafeReply(),
                 properties.getDefaultPersona(),
@@ -137,7 +143,12 @@ public class PersistentGroupConfigService implements GroupConfigService {
                 String.valueOf(entity.getGroupId()),
                 Boolean.TRUE.equals(entity.getBotOn()),
                 Boolean.TRUE.equals(entity.getEnableChat()),
+                defaultTrue(entity.getEnableMeme()),
+                defaultTrue(entity.getEnablePassiveChat()),
                 Boolean.TRUE.equals(entity.getEnableAutoJoin()),
+                positiveOrDefault(entity.getActiveCooldownSeconds(), properties.getActiveChat().getCooldownSeconds()),
+                nonNegativeOrDefault(entity.getActiveHourLimit(), properties.getActiveChat().getMaxPerHour()),
+                nonNegativeOrDefault(entity.getActiveDayLimit(), properties.getActiveChat().getMaxPerDay()),
                 entity.getSafeWord(),
                 blankToDefault(entity.getSafeWordReply(), properties.getDefaultSafeReply()),
                 blankToDefault(entity.getPersona(), properties.getDefaultPersona()),
@@ -150,7 +161,12 @@ public class PersistentGroupConfigService implements GroupConfigService {
         entity.setGroupId(Long.valueOf(snapshot.groupId()));
         entity.setBotOn(snapshot.botOn());
         entity.setEnableChat(snapshot.enableChat());
+        entity.setEnableMeme(snapshot.enableMeme());
+        entity.setEnablePassiveChat(snapshot.enablePassiveChat());
         entity.setEnableAutoJoin(snapshot.enableAutoJoin());
+        entity.setActiveCooldownSeconds(snapshot.activeCooldownSeconds());
+        entity.setActiveHourLimit(snapshot.activeMaxPerHour());
+        entity.setActiveDayLimit(snapshot.activeMaxPerDay());
         entity.setSafeWord(snapshot.safeWord());
         entity.setSafeWordReply(snapshot.safeWordReply());
         entity.setPersona(snapshot.persona());
@@ -171,5 +187,48 @@ public class PersistentGroupConfigService implements GroupConfigService {
 
     private String blankToDefault(String value, String defaultValue) {
         return value == null || value.isBlank() ? defaultValue : value;
+    }
+
+    private GroupConfigSnapshot normalizeSnapshot(GroupConfigSnapshot snapshot) {
+        QqBotProperties.ActiveChat activeChat = properties.getActiveChat();
+        boolean likelyOldCache = !snapshot.enableMeme()
+                && !snapshot.enablePassiveChat()
+                && snapshot.activeCooldownSeconds() == 0
+                && snapshot.activeMaxPerHour() == 0
+                && snapshot.activeMaxPerDay() == 0;
+        return new GroupConfigSnapshot(
+                snapshot.groupId(),
+                snapshot.botOn(),
+                snapshot.enableChat(),
+                likelyOldCache || snapshot.enableMeme(),
+                likelyOldCache || snapshot.enablePassiveChat(),
+                snapshot.enableAutoJoin(),
+                positiveOrDefault(snapshot.activeCooldownSeconds(), activeChat.getCooldownSeconds()),
+                nonNegativeOrDefault(snapshot.activeMaxPerHour(), activeChat.getMaxPerHour()),
+                nonNegativeOrDefault(snapshot.activeMaxPerDay(), activeChat.getMaxPerDay()),
+                snapshot.safeWord(),
+                blankToDefault(snapshot.safeWordReply(), properties.getDefaultSafeReply()),
+                blankToDefault(snapshot.persona(), properties.getDefaultPersona()),
+                snapshot.memoryMode() == null ? MemoryMode.SHORT : snapshot.memoryMode());
+    }
+
+    private boolean defaultTrue(Boolean value) {
+        return value == null || Boolean.TRUE.equals(value);
+    }
+
+    private long positiveOrDefault(Long value, long defaultValue) {
+        return value == null || value <= 0 ? Math.max(1, defaultValue) : value;
+    }
+
+    private long positiveOrDefault(long value, long defaultValue) {
+        return value <= 0 ? Math.max(1, defaultValue) : value;
+    }
+
+    private long nonNegativeOrDefault(Long value, long defaultValue) {
+        return value == null || value < 0 ? Math.max(0, defaultValue) : value;
+    }
+
+    private long nonNegativeOrDefault(long value, long defaultValue) {
+        return value < 0 ? Math.max(0, defaultValue) : value;
     }
 }

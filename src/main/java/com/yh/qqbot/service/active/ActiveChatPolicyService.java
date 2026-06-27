@@ -19,6 +19,7 @@ public class ActiveChatPolicyService {
 
     private static final Logger log = LoggerFactory.getLogger(ActiveChatPolicyService.class);
     private static final DateTimeFormatter HOUR_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHH");
+    private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final StringRedisTemplate rateRedisTemplate;
     private final QqBotProperties properties;
@@ -32,8 +33,9 @@ public class ActiveChatPolicyService {
 
     public ActiveChatPolicyResult evaluate(ActiveChatPolicyRequest request) {
         QqBotProperties.ActiveChat config = properties.getActiveChat();
-        long cooldownSeconds = Math.max(1, config.getCooldownSeconds());
-        long maxPerHour = Math.max(0, config.getMaxPerHour());
+        long cooldownSeconds = effectivePositive(request.cooldownSeconds(), config.getCooldownSeconds());
+        long maxPerHour = effectiveNonNegative(request.maxPerHour(), config.getMaxPerHour());
+        long maxPerDay = effectiveNonNegative(request.maxPerDay(), config.getMaxPerDay());
 
         if (!config.isEnabled()) {
             return reject(ActiveChatPolicyResult.ACTIVE_CHAT_DISABLED);
@@ -79,34 +81,47 @@ public class ActiveChatPolicyService {
         if (hourlyCount(request.groupId()) >= maxPerHour) {
             return reject(ActiveChatPolicyResult.HOURLY_LIMIT);
         }
+        if (dailyCount(request.groupId()) >= maxPerDay) {
+            return reject(ActiveChatPolicyResult.DAILY_LIMIT);
+        }
 
         double probability = config.getRandomProbability();
         if (probability <= 0) {
             return ActiveChatPolicyResult.rejected(
-                    ActiveChatPolicyResult.RANDOM_MISS, false, cooldownSeconds, maxPerHour);
+                    ActiveChatPolicyResult.RANDOM_MISS, false, cooldownSeconds, maxPerHour, maxPerDay);
         }
         if (probability < 1 && ThreadLocalRandom.current().nextDouble() >= probability) {
             return ActiveChatPolicyResult.rejected(
-                    ActiveChatPolicyResult.RANDOM_MISS, false, cooldownSeconds, maxPerHour);
+                    ActiveChatPolicyResult.RANDOM_MISS, false, cooldownSeconds, maxPerHour, maxPerDay);
         }
-        return ActiveChatPolicyResult.allowed(cooldownSeconds, maxPerHour);
+        return ActiveChatPolicyResult.allowed(cooldownSeconds, maxPerHour, maxPerDay);
     }
 
     public void markActiveChatSent(Long groupId) {
+        markActiveChatSent(groupId, null);
+    }
+
+    public void markActiveChatSent(Long groupId, Long cooldownSeconds) {
         if (groupId == null) {
             return;
         }
         QqBotProperties.ActiveChat config = properties.getActiveChat();
+        long effectiveCooldownSeconds = cooldownSeconds == null || cooldownSeconds <= 0
+                ? Math.max(1, config.getCooldownSeconds())
+                : cooldownSeconds;
         String groupIdText = String.valueOf(groupId);
         String cooldownKey = RedisKeys.activeChatCooldown(groupIdText);
         String hourKey = RedisKeys.activeChatHour(groupIdText, currentHour());
+        String dayKey = RedisKeys.activeChatDay(groupIdText, currentDay());
         try {
             rateRedisTemplate.opsForValue().set(
                     cooldownKey,
                     "1",
-                    Duration.ofSeconds(Math.max(1, config.getCooldownSeconds())));
+                    Duration.ofSeconds(effectiveCooldownSeconds));
             rateRedisTemplate.opsForValue().increment(hourKey);
             rateRedisTemplate.expire(hourKey, Duration.ofHours(2));
+            rateRedisTemplate.opsForValue().increment(dayKey);
+            rateRedisTemplate.expire(dayKey, Duration.ofDays(2));
         } catch (Exception ex) {
             log.warn("Failed to mark active chat sent. groupId={}", groupId, ex);
         }
@@ -118,7 +133,8 @@ public class ActiveChatPolicyService {
                 rejectReason,
                 true,
                 Math.max(1, config.getCooldownSeconds()),
-                Math.max(0, config.getMaxPerHour()));
+                Math.max(0, config.getMaxPerHour()),
+                Math.max(0, config.getMaxPerDay()));
     }
 
     private boolean isCoolingDown(Long groupId) {
@@ -147,8 +163,34 @@ public class ActiveChatPolicyService {
         }
     }
 
+    private long dailyCount(Long groupId) {
+        if (groupId == null) {
+            return 0;
+        }
+        try {
+            String value = rateRedisTemplate.opsForValue().get(
+                    RedisKeys.activeChatDay(String.valueOf(groupId), currentDay()));
+            return value == null || value.isBlank() ? 0 : Long.parseLong(value);
+        } catch (Exception ex) {
+            log.warn("Failed to check active chat daily count. groupId={}", groupId, ex);
+            return Long.MAX_VALUE;
+        }
+    }
+
     private String currentHour() {
         return LocalDateTime.now().format(HOUR_FORMATTER);
+    }
+
+    private String currentDay() {
+        return LocalDateTime.now().format(DAY_FORMATTER);
+    }
+
+    private long effectivePositive(Long value, long defaultValue) {
+        return value == null || value <= 0 ? Math.max(1, defaultValue) : value;
+    }
+
+    private long effectiveNonNegative(Long value, long defaultValue) {
+        return value == null || value < 0 ? Math.max(0, defaultValue) : value;
     }
 
     private boolean isPunctuationOnly(String text) {

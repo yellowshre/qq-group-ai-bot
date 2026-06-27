@@ -63,6 +63,10 @@ public final class RedisKeys {
         return "qqbot:active:hour:" + groupId + ":" + hour;
     }
 
+    public static String activeChatDay(String groupId, String day) {
+        return "qqbot:active:day:" + groupId + ":" + day;
+    }
+
     public static String activeDecision(String fingerprint) {
         return "decision:active:" + fingerprint;
     }

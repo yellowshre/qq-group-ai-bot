@@ -109,9 +109,12 @@ public class MessageRouterService {
 
         GroupConfigSnapshot config = groupConfigService.getConfig(message.groupId());
         if (!config.botOn()) {
-            if (message.effectiveText().toLowerCase(java.util.Locale.ROOT).startsWith("#boton")) {
+            String text = message.effectiveText().toLowerCase(java.util.Locale.ROOT);
+            if (text.startsWith("#boton")
+                    || text.startsWith("\u0023\u673a\u5668\u4eba\u6062\u590d")
+                    || text.startsWith("\u0023\u72b6\u6001")) {
                 CommandHandleResult command = adminCommandService.tryHandle(message, config);
-                if (command.handled() && "BOT_ON".equals(command.operation())) {
+                if (command.handled()) {
                     return RouteResult.send(RouteType.COMMAND, command.outboundMessage(), command.operation())
                             .withAdminCommandHit(true);
                 }
@@ -157,7 +160,7 @@ public class MessageRouterService {
             Long groupId = parseLong(message.groupId());
             chatContextService.appendUserMessage(groupId, parseLong(message.userId()), message.effectiveText());
             chatContextService.appendBotReply(groupId, botName(), result.replyText());
-            activeChatPolicyService.markActiveChatSent(groupId);
+            activeChatPolicyService.markActiveChatSent(groupId, result.cooldownSeconds());
         } else if (success && (result.routeType() == RouteType.PASSIVE_CHAT || result.routeType() == RouteType.ACTIVE_CHAT)) {
             String replyText = result.outboundMessage() == null ? "" : result.outboundMessage().text();
             GroupConfigSnapshot config = groupConfigService.getConfig(message.groupId());
@@ -223,6 +226,9 @@ public class MessageRouterService {
     private RouteResult handlePassiveChat(BotGroupMessage message, GroupConfigSnapshot config) {
         if (!config.enableChat()) {
             return passiveSilent("chat switch is off");
+        }
+        if (!config.enablePassiveChat()) {
+            return passiveSilent("passive chat switch is off");
         }
         if (!rateLimitService.preConsumePassiveChat(message.groupId())) {
             return passiveSilent("passive chat rate limited");
@@ -299,6 +305,11 @@ public class MessageRouterService {
     }
 
     private RouteResult buildMemeRoute(BotGroupMessage message) {
+        GroupConfigSnapshot config = groupConfigService.getConfig(message.groupId());
+        if (!config.enableMeme()) {
+            return RouteResult.silent("meme switch is off")
+                    .withSilentReason("meme switch is off");
+        }
         if (!rateLimitService.preConsumeEmoji(message.groupId())) {
             return RouteResult.silent("emoji route rate limited");
         }
@@ -322,10 +333,13 @@ public class MessageRouterService {
                         || botIdentityService.isBotAliasMatched(message.effectiveText())
                         || botIdentityService.isPassiveTriggerMatched(message.effectiveText()),
                 config.botOn(),
-                config.enableAutoJoin(),
+                config.activeChatEnabled(),
                 false,
                 memeResult != null && memeResult.shouldSend(),
-                false
+                false,
+                config.activeCooldownSeconds(),
+                config.activeMaxPerHour(),
+                config.activeMaxPerDay()
         );
         ActiveChatPolicyResult policy;
         try {

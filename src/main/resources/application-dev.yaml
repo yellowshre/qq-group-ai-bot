@@ -68,6 +68,7 @@ qqbot:
     enabled: true
     cooldown-seconds: 180
     max-per-hour: 20
+    max-per-day: 80
     random-probability: 1.0
     min-confidence: 0.6
     min-message-length: 3

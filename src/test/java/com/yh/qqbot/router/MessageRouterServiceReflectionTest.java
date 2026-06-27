@@ -561,7 +561,7 @@ class MessageRouterServiceReflectionTest {
 
     private void verifyActiveChatMarked(Object activeChatPolicyService) throws Exception {
         Object verified = Mockito.verify(activeChatPolicyService);
-        invoke(verified, "markActiveChatSent", new Class<?>[]{Long.class}, 10001L);
+        invoke(verified, "markActiveChatSent", new Class<?>[]{Long.class, Long.class}, 10001L, 180L);
     }
 
     private Object proxy(String className, Invocation invocation) throws Exception {

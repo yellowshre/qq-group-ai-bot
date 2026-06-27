@@ -1,9 +1,9 @@
 package com.yh.qqbot.service.command;
 
 import com.yh.qqbot.config.properties.QqBotProperties;
+import com.yh.qqbot.dto.BotGroupMessage;
 import com.yh.qqbot.dto.CommandHandleResult;
 import com.yh.qqbot.dto.GroupConfigSnapshot;
-import com.yh.qqbot.dto.BotGroupMessage;
 import com.yh.qqbot.enums.MemoryMode;
 import com.yh.qqbot.service.config.GroupConfigService;
 import com.yh.qqbot.service.context.ChatContextService;
@@ -13,6 +13,14 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AdminCommandService {
+
+    private static final String CMD_STATUS = "\u0023\u72b6\u6001";
+    private static final String CMD_ACTIVE_ON = "\u0023\u5f00\u542f\u4e3b\u52a8\u63d2\u8bdd";
+    private static final String CMD_ACTIVE_OFF = "\u0023\u5173\u95ed\u4e3b\u52a8\u63d2\u8bdd";
+    private static final String CMD_MEME_ON = "\u0023\u5f00\u542f\u8868\u60c5\u5305";
+    private static final String CMD_MEME_OFF = "\u0023\u5173\u95ed\u8868\u60c5\u5305";
+    private static final String CMD_BOT_QUIET = "\u0023\u673a\u5668\u4eba\u5b89\u9759";
+    private static final String CMD_BOT_RESUME = "\u0023\u673a\u5668\u4eba\u6062\u590d";
 
     private final QqBotProperties properties;
     private final GroupConfigService groupConfigService;
@@ -42,22 +50,51 @@ public class AdminCommandService {
         }
 
         if (!isAdmin(message.userId())) {
-            return CommandHandleResult.handled("DENIED", command, "你没有权限执行这个指令。");
+            return CommandHandleResult.handled("DENIED", command, "permission denied");
         }
 
         CommandHandleResult result = switch (command) {
-            case "#boton" -> update(message, "BOT_ON", "bot_on=true", snapshot -> snapshot.withBotOn(true), "机器人已开启。");
-            case "#botoff" -> update(message, "BOT_OFF", "bot_on=false", snapshot -> snapshot.withBotOn(false), "机器人已关闭。");
-            case "#chaton" -> update(message, "CHAT_ON", "enable_chat=true", snapshot -> snapshot.withEnableChat(true), "AI 对话已开启。");
-            case "#chatoff" -> update(message, "CHAT_OFF", "enable_chat=false",
-                    snapshot -> snapshot.withEnableChat(false).withEnableAutoJoin(false), "AI 对话和主动插话已关闭。");
-            case "#autochaton" -> enableAutoChat(message, config);
-            case "#autochatoff" -> update(message, "AUTO_CHAT_OFF", "enable_auto_join=false",
-                    snapshot -> snapshot.withEnableAutoJoin(false), "主动插话已关闭。");
-            case "#memshort" -> update(message, "MEM_SHORT", "memory_mode=SHORT",
-                    snapshot -> snapshot.withMemoryMode(MemoryMode.SHORT), "已切换为短记忆模式。");
-            case "#memlong" -> update(message, "MEM_LONG", "memory_mode=LONG",
-                    snapshot -> snapshot.withMemoryMode(MemoryMode.LONG), "已切换为长记忆模式。");
+            case CMD_STATUS -> status(config);
+            case "#boton", CMD_BOT_RESUME -> update(
+                    message, "BOT_ON", "bot_on=true", snapshot -> snapshot.withBotOn(true), "bot resumed");
+            case "#botoff", CMD_BOT_QUIET -> update(
+                    message, "BOT_OFF", "bot_on=false", snapshot -> snapshot.withBotOn(false), "bot quiet mode enabled");
+            case "#chaton" -> update(
+                    message, "CHAT_ON", "enable_chat=true", snapshot -> snapshot.withEnableChat(true), "chat on");
+            case "#chatoff" -> update(
+                    message,
+                    "CHAT_OFF",
+                    "enable_chat=false",
+                    snapshot -> snapshot.withEnableChat(false).withEnableAutoJoin(false),
+                    "chat and active chat off");
+            case "#autochaton", CMD_ACTIVE_ON -> update(
+                    message,
+                    "AUTO_CHAT_ON",
+                    "enable_auto_join=true",
+                    snapshot -> snapshot.withEnableAutoJoin(true),
+                    "active chat on");
+            case "#autochatoff", CMD_ACTIVE_OFF -> update(
+                    message,
+                    "AUTO_CHAT_OFF",
+                    "enable_auto_join=false",
+                    snapshot -> snapshot.withEnableAutoJoin(false),
+                    "active chat off");
+            case CMD_MEME_ON -> update(
+                    message, "MEME_ON", "enable_meme=true", snapshot -> snapshot.withEnableMeme(true), "meme route on");
+            case CMD_MEME_OFF -> update(
+                    message, "MEME_OFF", "enable_meme=false", snapshot -> snapshot.withEnableMeme(false), "meme route off");
+            case "#memshort" -> update(
+                    message,
+                    "MEM_SHORT",
+                    "memory_mode=SHORT",
+                    snapshot -> snapshot.withMemoryMode(MemoryMode.SHORT),
+                    "memory mode short");
+            case "#memlong" -> update(
+                    message,
+                    "MEM_LONG",
+                    "memory_mode=LONG",
+                    snapshot -> snapshot.withMemoryMode(MemoryMode.LONG),
+                    "memory mode long");
             case "#clearchatctx" -> clearContext(message);
             case "#setsafeword" -> setSafeWord(message, text);
             case "#setsafereply" -> setSafeReply(message, text);
@@ -70,17 +107,30 @@ public class AdminCommandService {
         return result;
     }
 
-    private CommandHandleResult enableAutoChat(BotGroupMessage message, GroupConfigSnapshot config) {
-        if (!config.enableChat()) {
-            return CommandHandleResult.handled("AUTO_CHAT_ON_REJECTED", "enable_chat=false", "请先使用 #chaton 开启 AI 对话。");
-        }
-        return update(message, "AUTO_CHAT_ON", "enable_auto_join=true",
-                snapshot -> snapshot.withEnableAutoJoin(true), "主动插话已开启。");
+    private CommandHandleResult status(GroupConfigSnapshot config) {
+        String text = """
+                group status
+                bot: %s
+                meme A: %s
+                passive chat B: %s
+                active chat C: %s
+                active cooldown: %ds
+                active hourly limit: %d
+                active daily limit: %d
+                """.formatted(
+                onOff(config.botOn()),
+                onOff(config.enableMeme()),
+                onOff(config.passiveChatEnabled()),
+                onOff(config.activeChatEnabled()),
+                config.activeCooldownSeconds(),
+                config.activeMaxPerHour(),
+                config.activeMaxPerDay()).strip();
+        return CommandHandleResult.handled("STATUS", "group config status", text);
     }
 
     private CommandHandleResult clearContext(BotGroupMessage message) {
         chatContextService.clearGroupMemory(message.groupId());
-        return CommandHandleResult.handled("CLEAR_CHAT_CONTEXT", "clear hot and cold context requested", "当前群记忆已清空。");
+        return CommandHandleResult.handled("CLEAR_CHAT_CONTEXT", "clear hot and cold context requested", "context cleared");
     }
 
     private CommandHandleResult setSafeWord(BotGroupMessage message, String text) {
@@ -89,10 +139,10 @@ public class AdminCommandService {
                 : "";
         if (value.equalsIgnoreCase("off") || value.isBlank()) {
             return update(message, "SAFE_WORD_OFF", "safe_word=null",
-                    snapshot -> snapshot.withSafeWord(null), "安全词已关闭。");
+                    snapshot -> snapshot.withSafeWord(null), "safe word off");
         }
         return update(message, "SAFE_WORD_SET", "safe_word=" + value,
-                snapshot -> snapshot.withSafeWord(value), "安全词已设置。");
+                snapshot -> snapshot.withSafeWord(value), "safe word set");
     }
 
     private CommandHandleResult setSafeReply(BotGroupMessage message, String text) {
@@ -100,10 +150,10 @@ public class AdminCommandService {
                 ? text.substring("#setsafereply".length()).strip()
                 : "";
         if (value.isBlank()) {
-            return CommandHandleResult.handled("SAFE_REPLY_REJECTED", "blank reply", "安全词回复不能为空。");
+            return CommandHandleResult.handled("SAFE_REPLY_REJECTED", "blank reply", "safe reply must not be blank");
         }
         return update(message, "SAFE_REPLY_SET", "safe_word_reply updated",
-                snapshot -> snapshot.withSafeWordReply(value), "安全词回复已设置。");
+                snapshot -> snapshot.withSafeWordReply(value), "safe reply set");
     }
 
     private CommandHandleResult update(
@@ -129,9 +179,14 @@ public class AdminCommandService {
 
     private boolean isKnownCommand(String command) {
         return switch (command) {
-            case "#boton", "#botoff", "#chaton", "#chatoff", "#autochaton", "#autochatoff",
+            case CMD_STATUS, CMD_ACTIVE_ON, CMD_ACTIVE_OFF, CMD_MEME_ON, CMD_MEME_OFF, CMD_BOT_QUIET, CMD_BOT_RESUME,
+                    "#boton", "#botoff", "#chaton", "#chatoff", "#autochaton", "#autochatoff",
                     "#memshort", "#memlong", "#clearchatctx", "#setsafeword", "#setsafereply" -> true;
             default -> false;
         };
+    }
+
+    private String onOff(boolean value) {
+        return value ? "ON" : "OFF";
     }
 }

@@ -13,7 +13,12 @@ public class GroupConfigEntity {
     private Long groupId;
     private Boolean botOn;
     private Boolean enableChat;
+    private Boolean enableMeme;
+    private Boolean enablePassiveChat;
     private Boolean enableAutoJoin;
+    private Long activeCooldownSeconds;
+    private Long activeHourLimit;
+    private Long activeDayLimit;
     private String safeWord;
     private String safeWordReply;
     private String persona;

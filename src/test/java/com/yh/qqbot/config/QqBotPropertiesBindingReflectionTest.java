@@ -25,6 +25,7 @@ class QqBotPropertiesBindingReflectionTest {
                 .withProperty("qqbot.onebot.ws.reconnect-delay-ms", "5000")
                 .withProperty("qqbot.active-chat.cooldown-seconds", "180")
                 .withProperty("qqbot.active-chat.max-per-hour", "20")
+                .withProperty("qqbot.active-chat.max-per-day", "80")
                 .withProperty("qqbot.active-chat.random-probability", "0.75")
                 .withProperty("qqbot.active-chat.min-confidence", "0.6")
                 .withProperty("qqbot.dify.workflow.meme-scene", "meme-scene-recognizer")
@@ -54,6 +55,7 @@ class QqBotPropertiesBindingReflectionTest {
         assertThat(invoke(ws, "getReconnectDelayMs")).isEqualTo(5000L);
         assertThat(invoke(activeChat, "getCooldownSeconds")).isEqualTo(180L);
         assertThat(invoke(activeChat, "getMaxPerHour")).isEqualTo(20L);
+        assertThat(invoke(activeChat, "getMaxPerDay")).isEqualTo(80L);
         assertThat(invoke(activeChat, "getRandomProbability")).isEqualTo(0.75);
         assertThat(invoke(activeChat, "getMinConfidence")).isEqualTo(0.6);
         assertThat(invoke(dify, "getSceneWorkflowId")).isEqualTo("meme-scene-recognizer");

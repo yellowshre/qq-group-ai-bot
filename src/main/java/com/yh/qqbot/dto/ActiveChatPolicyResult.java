@@ -6,7 +6,8 @@ public record ActiveChatPolicyResult(
         String rejectReason,
         boolean randomHit,
         long cooldownSeconds,
-        long maxPerHour) {
+        long maxPerHour,
+        long maxPerDay) {
 
     public static final String ACTIVE_CHAT_DISABLED = "ACTIVE_CHAT_DISABLED";
     public static final String AT_BOT = "AT_BOT";
@@ -22,14 +23,28 @@ public record ActiveChatPolicyResult(
     public static final String LAST_MESSAGE_FROM_BOT = "LAST_MESSAGE_FROM_BOT";
     public static final String COOLDOWN = "COOLDOWN";
     public static final String HOURLY_LIMIT = "HOURLY_LIMIT";
+    public static final String DAILY_LIMIT = "DAILY_LIMIT";
     public static final String RANDOM_MISS = "RANDOM_MISS";
     public static final String ALLOWED = "ALLOWED";
 
     public static ActiveChatPolicyResult allowed(long cooldownSeconds, long maxPerHour) {
-        return new ActiveChatPolicyResult(true, ALLOWED, ALLOWED, true, cooldownSeconds, maxPerHour);
+        return allowed(cooldownSeconds, maxPerHour, 0);
+    }
+
+    public static ActiveChatPolicyResult allowed(long cooldownSeconds, long maxPerHour, long maxPerDay) {
+        return new ActiveChatPolicyResult(true, ALLOWED, ALLOWED, true, cooldownSeconds, maxPerHour, maxPerDay);
     }
 
     public static ActiveChatPolicyResult rejected(String rejectReason, boolean randomHit, long cooldownSeconds, long maxPerHour) {
-        return new ActiveChatPolicyResult(false, rejectReason, rejectReason, randomHit, cooldownSeconds, maxPerHour);
+        return rejected(rejectReason, randomHit, cooldownSeconds, maxPerHour, 0);
+    }
+
+    public static ActiveChatPolicyResult rejected(
+            String rejectReason,
+            boolean randomHit,
+            long cooldownSeconds,
+            long maxPerHour,
+            long maxPerDay) {
+        return new ActiveChatPolicyResult(false, rejectReason, rejectReason, randomHit, cooldownSeconds, maxPerHour, maxPerDay);
     }
 }

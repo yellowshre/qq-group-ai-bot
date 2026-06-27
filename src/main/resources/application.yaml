@@ -61,6 +61,7 @@ qqbot:
     enabled: ${QQBOT_ACTIVE_CHAT_ENABLED:true}
     cooldown-seconds: ${QQBOT_ACTIVE_CHAT_COOLDOWN_SECONDS:180}
     max-per-hour: ${QQBOT_ACTIVE_CHAT_MAX_PER_HOUR:20}
+    max-per-day: ${QQBOT_ACTIVE_CHAT_MAX_PER_DAY:80}
     random-probability: ${QQBOT_ACTIVE_CHAT_RANDOM_PROBABILITY:1.0}
     min-confidence: ${QQBOT_ACTIVE_CHAT_MIN_CONFIDENCE:0.6}
     min-message-length: ${QQBOT_ACTIVE_CHAT_MIN_MESSAGE_LENGTH:3}

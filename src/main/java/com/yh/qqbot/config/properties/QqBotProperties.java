@@ -269,6 +269,8 @@ public class QqBotProperties {
         private long cooldownSeconds = 180;
         @Min(0)
         private long maxPerHour = 20;
+        @Min(0)
+        private long maxPerDay = 80;
         private double randomProbability = 1.0;
         private double minConfidence = 0.6;
         @Min(1)
@@ -300,6 +302,14 @@ public class QqBotProperties {
 
         public void setMaxPerHour(long maxPerHour) {
             this.maxPerHour = maxPerHour;
+        }
+
+        public long getMaxPerDay() {
+            return maxPerDay;
+        }
+
+        public void setMaxPerDay(long maxPerDay) {
+            this.maxPerDay = maxPerDay;
         }
 
         public double getRandomProbability() {
