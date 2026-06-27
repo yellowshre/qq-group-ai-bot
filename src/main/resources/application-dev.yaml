@@ -56,11 +56,13 @@ qqbot:
       - "#可以说话了"
       - "小黄说话"
 
+#  passive-chat:
+#    trigger-words:
+#      - "小黄"
+#      - "黄哥"
+#      - "机器人"
   passive-chat:
-    trigger-words:
-      - "小黄"
-      - "黄哥"
-      - "机器人"
+    trigger-words: ${QQBOT_PASSIVE_CHAT_TRIGGER_WORDS:小黄,黄哥,机器人}
 
   active-chat:
     enabled: true
@@ -81,6 +83,7 @@ qqbot:
 
   meme:
     cache-preheat-enabled: true
+    base-dir: ${QQBOT_MEME_BASE_DIR:./memes}
 
   dify:
     enabled: ${DIFY_ENABLED:false}

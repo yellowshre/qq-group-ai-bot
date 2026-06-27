@@ -83,17 +83,17 @@ ON DUPLICATE KEY UPDATE
     confidence_threshold = VALUES(confidence_threshold);
 
 INSERT INTO meme_material (keywords, scene_code, scene_desc, weight, enabled, file_path)
-SELECT '哈哈,笑死,乐', 'laugh', '好笑、调侃、哈哈哈的场景', 10, 1, 'C:/qqbot/memes/laugh_01.png'
-WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'C:/qqbot/memes/laugh_01.png');
+SELECT '哈哈,笑死,乐', 'laugh', '好笑、调侃、哈哈哈的场景', 10, 1, 'laugh/laugh_001.png'
+WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'laugh/laugh_001.png');
 
 INSERT INTO meme_material (keywords, scene_code, scene_desc, weight, enabled, file_path)
-SELECT '绷不住,离谱', 'laugh', '好笑、调侃、哈哈哈的场景', 6, 1, 'C:/qqbot/memes/laugh_02.png'
-WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'C:/qqbot/memes/laugh_02.png');
+SELECT '绷不住,离谱', 'laugh', '好笑、调侃、哈哈哈的场景', 6, 1, 'laugh/laugh_002.png'
+WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'laugh/laugh_002.png');
 
 INSERT INTO meme_material (keywords, scene_code, scene_desc, weight, enabled, file_path)
-SELECT '生气,怒了,气死', 'angry', '生气、暴躁、吐槽的场景', 8, 1, 'C:/qqbot/memes/angry_01.png'
-WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'C:/qqbot/memes/angry_01.png');
+SELECT '生气,怒了,气死', 'angry', '生气、暴躁、吐槽的场景', 8, 1, 'angry/angry_001.png'
+WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'angry/angry_001.png');
 
 INSERT INTO meme_material (keywords, scene_code, scene_desc, weight, enabled, file_path)
-SELECT '啊?,啥,看不懂', 'confused', '疑惑、看不懂、震惊的场景', 7, 1, 'C:/qqbot/memes/confused_01.png'
-WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'C:/qqbot/memes/confused_01.png');
+SELECT '啊?,啥,看不懂', 'confused', '疑惑、看不懂、震惊的场景', 7, 1, 'confused/confused_001.png'
+WHERE NOT EXISTS (SELECT 1 FROM meme_material WHERE file_path = 'confused/confused_001.png');

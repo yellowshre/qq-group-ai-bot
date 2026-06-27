@@ -61,7 +61,20 @@ class OneBotWsActionFactoryTest {
     }
 
     private Object factory() throws Exception {
-        return cls("com.yh.qqbot.adapter.onebot.OneBotWsActionFactory").getConstructor().newInstance();
+        return cls("com.yh.qqbot.adapter.onebot.OneBotWsActionFactory")
+                .getConstructor(cls("com.yh.qqbot.adapter.onebot.OneBotImagePathResolver"))
+                .newInstance(resolver(""));
+    }
+
+    private Object resolver(String baseDir) throws Exception {
+        Object properties = cls("com.yh.qqbot.config.properties.QqBotProperties").getConstructor().newInstance();
+        if (baseDir != null && !baseDir.isBlank()) {
+            Object meme = invoke(properties, "getMeme");
+            invoke(meme, "setBaseDir", new Class<?>[]{String.class}, baseDir);
+        }
+        return cls("com.yh.qqbot.adapter.onebot.OneBotImagePathResolver")
+                .getConstructor(cls("com.yh.qqbot.config.properties.QqBotProperties"))
+                .newInstance(properties);
     }
 
     @SuppressWarnings("unchecked")
@@ -84,6 +97,14 @@ class OneBotWsActionFactoryTest {
     private Object outboundImage(String imagePath) throws Exception {
         Method method = cls("com.yh.qqbot.dto.OutboundMessage").getMethod("image", String.class);
         return method.invoke(null, imagePath);
+    }
+
+    private Object invoke(Object target, String methodName) throws Exception {
+        return target.getClass().getMethod(methodName).invoke(target);
+    }
+
+    private Object invoke(Object target, String methodName, Class<?>[] parameterTypes, Object... args) throws Exception {
+        return target.getClass().getMethod(methodName, parameterTypes).invoke(target, args);
     }
 
     private Class<?> cls(String name) throws ClassNotFoundException {

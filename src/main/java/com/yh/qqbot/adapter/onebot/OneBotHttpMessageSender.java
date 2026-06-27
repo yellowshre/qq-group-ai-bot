@@ -23,10 +23,15 @@ public class OneBotHttpMessageSender implements QqMessageSender {
 
     private final QqBotProperties properties;
     private final RestClient restClient;
+    private final OneBotImagePathResolver imagePathResolver;
 
-    public OneBotHttpMessageSender(QqBotProperties properties, RestClient.Builder builder) {
+    public OneBotHttpMessageSender(
+            QqBotProperties properties,
+            RestClient.Builder builder,
+            OneBotImagePathResolver imagePathResolver) {
         this.properties = properties;
         this.restClient = builder.baseUrl(properties.getOnebot().getApiServerHost()).build();
+        this.imagePathResolver = imagePathResolver;
     }
 
     @PostConstruct
@@ -74,19 +79,9 @@ public class OneBotHttpMessageSender implements QqMessageSender {
         if (outboundMessage.imagePath() != null && !outboundMessage.imagePath().isBlank()) {
             segments.add(Map.of(
                     "type", "image",
-                    "data", Map.of("file", normalizeImageFile(outboundMessage.imagePath()))
+                    "data", Map.of("file", imagePathResolver.toOneBotFile(outboundMessage.imagePath()))
             ));
         }
         return segments;
-    }
-
-    private String normalizeImageFile(String imagePath) {
-        if (imagePath.startsWith("http://")
-                || imagePath.startsWith("https://")
-                || imagePath.startsWith("file://")
-                || imagePath.startsWith("base64://")) {
-            return imagePath;
-        }
-        return "file:///" + imagePath.replace("\\", "/");
     }
 }

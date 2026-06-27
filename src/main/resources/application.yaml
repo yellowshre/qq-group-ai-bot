@@ -49,11 +49,14 @@ qqbot:
       - "#开启主动插话"
       - "#可以说话了"
       - "小黄说话"
+#  passive-chat:
+#    trigger-words:
+#      - "小黄"
+#      - "黄哥"
+#      - "机器人"
   passive-chat:
-    trigger-words:
-      - "小黄"
-      - "黄哥"
-      - "机器人"
+    trigger-words: ${QQBOT_PASSIVE_CHAT_TRIGGER_WORDS:小黄,黄哥,机器人}
+
   active-chat:
     enabled: ${QQBOT_ACTIVE_CHAT_ENABLED:true}
     cooldown-seconds: ${QQBOT_ACTIVE_CHAT_COOLDOWN_SECONDS:180}
@@ -101,6 +104,7 @@ qqbot:
     max-message-length: ${QQBOT_CHAT_CONTEXT_MAX_MESSAGE_LENGTH:160}
   meme:
     cache-preheat-enabled: ${QQBOT_MEME_CACHE_PREHEAT_ENABLED:true}
+    base-dir: ${QQBOT_MEME_BASE_DIR:./memes}
   dify:
     enabled: ${DIFY_ENABLED:false}
     base-url: ${DIFY_BASE_URL:http://127.0.0.1:5001}

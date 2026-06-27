@@ -665,7 +665,7 @@ qqbot:
       {
         "type": "image",
         "data": {
-          "file": "file:///C:/qqbot/memes/laugh_01.png"
+          "file": "file:///C:/Users/yang/Desktop/XM/QQbot/bot/memes/laugh/laugh_001.png"
         }
       }
     ]

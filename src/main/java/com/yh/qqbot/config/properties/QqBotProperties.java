@@ -656,6 +656,7 @@ public class QqBotProperties {
 
     public static class Meme {
         private boolean cachePreheatEnabled = true;
+        private String baseDir = "./memes";
 
         public boolean isCachePreheatEnabled() {
             return cachePreheatEnabled;
@@ -663,6 +664,14 @@ public class QqBotProperties {
 
         public void setCachePreheatEnabled(boolean cachePreheatEnabled) {
             this.cachePreheatEnabled = cachePreheatEnabled;
+        }
+
+        public String getBaseDir() {
+            return baseDir;
+        }
+
+        public void setBaseDir(String baseDir) {
+            this.baseDir = baseDir;
         }
     }
 

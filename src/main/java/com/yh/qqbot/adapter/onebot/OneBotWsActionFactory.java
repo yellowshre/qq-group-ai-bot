@@ -9,6 +9,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class OneBotWsActionFactory {
 
+    private final OneBotImagePathResolver imagePathResolver;
+
+    public OneBotWsActionFactory(OneBotImagePathResolver imagePathResolver) {
+        this.imagePathResolver = imagePathResolver;
+    }
+
     public Map<String, Object> sendGroupMessage(String groupId, OutboundMessage outboundMessage, String echo) {
         return Map.of(
                 "action", "send_group_msg",
@@ -41,20 +47,7 @@ public class OneBotWsActionFactory {
     }
 
     public String normalizeImageFile(String imagePath) {
-        if (!hasText(imagePath)) {
-            return "";
-        }
-        String normalized = imagePath.strip().replace("\\", "/");
-        if (normalized.startsWith("http://")
-                || normalized.startsWith("https://")
-                || normalized.startsWith("file://")
-                || normalized.startsWith("base64://")) {
-            return normalized;
-        }
-        if (normalized.startsWith("/")) {
-            return "file://" + normalized;
-        }
-        return "file:///" + normalized;
+        return imagePathResolver.toOneBotFile(imagePath);
     }
 
     private boolean hasText(String value) {

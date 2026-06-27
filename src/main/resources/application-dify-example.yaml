@@ -1,4 +1,6 @@
 qqbot:
+  meme:
+    base-dir: ${QQBOT_MEME_BASE_DIR:./memes}
   dify:
     enabled: true
     base-url: ${DIFY_BASE_URL:http://127.0.0.1:5001}
