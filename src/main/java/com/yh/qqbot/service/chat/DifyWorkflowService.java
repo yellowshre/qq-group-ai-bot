@@ -13,6 +13,7 @@ import com.yh.qqbot.dto.DifyPassiveChatRequest;
 import com.yh.qqbot.dto.DifyPassiveChatResponse;
 import com.yh.qqbot.dto.PassiveChatReply;
 import com.yh.qqbot.dto.SceneDecision;
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +32,17 @@ public class DifyWorkflowService {
     public DifyWorkflowService(DifyClient difyClient, QqBotProperties properties) {
         this.difyClient = difyClient;
         this.properties = properties;
+    }
+
+    @PostConstruct
+    public void logDifyConfigStatus() {
+        QqBotProperties.Dify dify = properties.getDify();
+        log.info("Dify config status. enabled={}, baseUrlConfigured={}, memeSceneApiKeyConfigured={}, passiveChatApiKeyConfigured={}, activeChatApiKeyConfigured={}",
+                dify.isEnabled(),
+                hasText(dify.getBaseUrl()),
+                hasText(dify.getMemeSceneApiKey()),
+                hasText(dify.getPassiveChatApiKey()),
+                hasText(dify.getActiveChatApiKey()));
     }
 
     public Optional<SceneDecision> classifyScene(String text, String userId) {
@@ -71,6 +83,11 @@ public class DifyWorkflowService {
         if (!dify.isEnabled() || !hasText(dify.getPassiveChatApiKey())) {
             return Optional.empty();
         }
+        if (!hasText(dify.getPassiveChatWorkflowId())) {
+            log.warn("Skip Dify passive chat because workflow id is empty. difyEnabled={}, passiveChatApiKeyConfigured={}",
+                    dify.isEnabled(), hasText(dify.getPassiveChatApiKey()));
+            return Optional.empty();
+        }
 
         try {
             DifyPassiveChatRequest request = new DifyPassiveChatRequest(
@@ -91,7 +108,14 @@ public class DifyWorkflowService {
                             valueAsString(firstValue(outputs, "replyText", "reply_text")),
                             valueAsNullableDouble(firstValue(outputs, "confidence", "score"))
                     ))
-                    .filter(DifyPassiveChatResponse::valid)
+                    .filter(response -> {
+                        boolean valid = response.valid();
+                        if (!valid) {
+                            log.warn("Dify passive chat response invalid. replyTextPresent={}, confidencePresent={}",
+                                    hasText(response.replyText()), response.confidence() != null);
+                        }
+                        return valid;
+                    })
                     .map(DifyPassiveChatResponse::toPassiveChatReply)
                     .filter(PassiveChatReply::hasText);
         } catch (Exception ex) {

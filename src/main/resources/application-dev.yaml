@@ -20,6 +20,13 @@ qqbot:
   onebot:
     access-token: ""
     dry-run: true
+    self-id: ${QQBOT_ONEBOT_SELF_ID:}
+    allowed-group-ids: ${QQBOT_ONEBOT_ALLOWED_GROUP_IDS:}
+    ws:
+      enabled: ${QQBOT_ONEBOT_WS_ENABLED:false}
+      url: ${QQBOT_ONEBOT_WS_URL:ws://127.0.0.1:3001/}
+      access-token: ${QQBOT_ONEBOT_WS_TOKEN:}
+      reconnect-delay-ms: ${QQBOT_ONEBOT_WS_RECONNECT_DELAY_MS:5000}
 
   redis:
     host: ${QQBOT_REDIS_HOST:127.0.0.1}

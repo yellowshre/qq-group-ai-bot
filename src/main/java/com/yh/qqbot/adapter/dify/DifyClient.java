@@ -1,6 +1,7 @@
 package com.yh.qqbot.adapter.dify;
 
 import com.yh.qqbot.config.properties.QqBotProperties;
+import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +30,17 @@ public class DifyClient {
                 .baseUrl(properties.getDify().getBaseUrl())
                 .requestFactory(requestFactory)
                 .build();
+    }
+
+    @PostConstruct
+    public void logClientStatus() {
+        QqBotProperties.Dify dify = properties.getDify();
+        log.info("DifyClient bean active. difyEnabled={}, baseUrlConfigured={}, memeSceneApiKeyConfigured={}, passiveChatApiKeyConfigured={}, activeChatApiKeyConfigured={}",
+                dify.isEnabled(),
+                hasText(dify.getBaseUrl()),
+                hasText(dify.getMemeSceneApiKey()),
+                hasText(dify.getPassiveChatApiKey()),
+                hasText(dify.getActiveChatApiKey()));
     }
 
     public Optional<Map<String, Object>> runWorkflow(
@@ -66,5 +78,9 @@ public class DifyClient {
             log.warn("Dify workflow call failed. workflowId={}", workflowId, ex);
             return Optional.empty();
         }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

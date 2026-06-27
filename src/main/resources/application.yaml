@@ -68,7 +68,14 @@ qqbot:
     api-server-host: ${QQBOT_ONEBOT_API:http://127.0.0.1:3000}
     event-server-host: ${QQBOT_ONEBOT_EVENT:ws://127.0.0.1:3001}
     access-token: ${QQBOT_ONEBOT_TOKEN:}
+    self-id: ${QQBOT_ONEBOT_SELF_ID:}
+    allowed-group-ids: ${QQBOT_ONEBOT_ALLOWED_GROUP_IDS:}
     dry-run: ${QQBOT_ONEBOT_DRY_RUN:true}
+    ws:
+      enabled: ${QQBOT_ONEBOT_WS_ENABLED:false}
+      url: ${QQBOT_ONEBOT_WS_URL:ws://127.0.0.1:3001/}
+      access-token: ${QQBOT_ONEBOT_WS_TOKEN:}
+      reconnect-delay-ms: ${QQBOT_ONEBOT_WS_RECONNECT_DELAY_MS:5000}
   redis:
     host: ${QQBOT_REDIS_HOST:127.0.0.1}
     port: ${QQBOT_REDIS_PORT:6379}
@@ -98,9 +105,9 @@ qqbot:
     enabled: ${DIFY_ENABLED:false}
     base-url: ${DIFY_BASE_URL:http://127.0.0.1:5001}
     workflow:
-      meme-scene: ${DIFY_MEME_SCENE_WORKFLOW:}
-      passive-chat: ${DIFY_PASSIVE_CHAT_WORKFLOW:}
-      active-chat: ${DIFY_ACTIVE_CHAT_WORKFLOW:}
+      meme-scene: ${DIFY_MEME_SCENE_WORKFLOW:meme-scene-recognizer}
+      passive-chat: ${DIFY_PASSIVE_CHAT_WORKFLOW:passive-chat-reply}
+      active-chat: ${DIFY_ACTIVE_CHAT_WORKFLOW:active-chat-reply}
     meme-scene-api-key: ${DIFY_MEME_SCENE_API_KEY:}
     passive-chat-api-key: ${DIFY_PASSIVE_CHAT_API_KEY:}
     active-chat-api-key: ${DIFY_ACTIVE_CHAT_API_KEY:}

@@ -17,6 +17,12 @@ class QqBotPropertiesBindingReflectionTest {
                 .withProperty("qqbot.identity.aliases[1]", "黄哥")
                 .withProperty("qqbot.safety.active-chat-off-words[0]", "小黄闭嘴")
                 .withProperty("qqbot.safety.active-chat-on-words[0]", "小黄说话")
+                .withProperty("qqbot.onebot.self-id", "1771183256")
+                .withProperty("qqbot.onebot.allowed-group-ids[0]", "736566774")
+                .withProperty("qqbot.onebot.ws.enabled", "true")
+                .withProperty("qqbot.onebot.ws.url", "ws://127.0.0.1:3001/")
+                .withProperty("qqbot.onebot.ws.access-token", "test-ws-token")
+                .withProperty("qqbot.onebot.ws.reconnect-delay-ms", "5000")
                 .withProperty("qqbot.active-chat.cooldown-seconds", "180")
                 .withProperty("qqbot.active-chat.max-per-hour", "20")
                 .withProperty("qqbot.active-chat.random-probability", "0.75")
@@ -31,6 +37,8 @@ class QqBotPropertiesBindingReflectionTest {
         Object properties = Binder.get(env).bind("qqbot", Bindable.of(cls("com.yh.qqbot.config.properties.QqBotProperties"))).get();
         Object identity = invoke(properties, "getIdentity");
         Object safety = invoke(properties, "getSafety");
+        Object onebot = invoke(properties, "getOnebot");
+        Object ws = invoke(onebot, "getWs");
         Object activeChat = invoke(properties, "getActiveChat");
         Object dify = invoke(properties, "getDify");
 
@@ -38,6 +46,12 @@ class QqBotPropertiesBindingReflectionTest {
         assertThat((java.util.List<Object>) invoke(identity, "getAliases")).containsExactly("小黄", "黄哥");
         assertThat((java.util.List<Object>) invoke(safety, "getActiveChatOffWords")).containsExactly("小黄闭嘴");
         assertThat((java.util.List<Object>) invoke(safety, "getActiveChatOnWords")).containsExactly("小黄说话");
+        assertThat(invoke(onebot, "getSelfId")).isEqualTo("1771183256");
+        assertThat((java.util.List<Object>) invoke(onebot, "getAllowedGroupIds")).containsExactly("736566774");
+        assertThat(invoke(ws, "isEnabled")).isEqualTo(true);
+        assertThat(invoke(ws, "getUrl")).isEqualTo("ws://127.0.0.1:3001/");
+        assertThat(invoke(ws, "getAccessToken")).isEqualTo("test-ws-token");
+        assertThat(invoke(ws, "getReconnectDelayMs")).isEqualTo(5000L);
         assertThat(invoke(activeChat, "getCooldownSeconds")).isEqualTo(180L);
         assertThat(invoke(activeChat, "getMaxPerHour")).isEqualTo(20L);
         assertThat(invoke(activeChat, "getRandomProbability")).isEqualTo(0.75);

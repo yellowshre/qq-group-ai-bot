@@ -30,14 +30,21 @@ import com.yh.qqbot.service.meme.MemeMatchService;
 import com.yh.qqbot.service.rate.MessageDedupService;
 import com.yh.qqbot.service.rate.RateLimitService;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MessageRouterService {
 
+    private static final Logger log = LoggerFactory.getLogger(MessageRouterService.class);
     private static final String PASSIVE_DIFY_CHAT = "PASSIVE_DIFY_CHAT";
     private static final String ACTIVE_DIFY_CHAT = "ACTIVE_DIFY_CHAT";
     private static final String ACTIVE_POLICY_UNAVAILABLE = "ACTIVE_POLICY_UNAVAILABLE";
+    private static final String DIFY_DISABLED = "DIFY_DISABLED";
+    private static final String PASSIVE_CHAT_API_KEY_EMPTY = "PASSIVE_CHAT_API_KEY_EMPTY";
+    private static final String PASSIVE_CHAT_WORKFLOW_EMPTY = "PASSIVE_CHAT_WORKFLOW_EMPTY";
+    private static final String PASSIVE_CHAT_REPLY_EMPTY_OR_INVALID = "PASSIVE_CHAT_REPLY_EMPTY_OR_INVALID";
     private static final String DEFAULT_BOT_NAME = "\u5c0f\u9ec4";
     private static final String DEFAULT_RISK_HINT = "\u65e0\u660e\u663e\u98ce\u9669";
 
@@ -235,6 +242,12 @@ public class MessageRouterService {
                 persona,
                 java.util.List.of(recentMessages));
         if (reply.isEmpty()) {
+            String unavailableReason = passiveChatUnavailableReason();
+            log.warn("Passive chat unavailable. reason={}, difyEnabled={}, baseUrlConfigured={}, passiveChatApiKeyConfigured={}",
+                    unavailableReason,
+                    properties.getDify().isEnabled(),
+                    hasText(properties.getDify().getBaseUrl()),
+                    hasText(properties.getDify().getPassiveChatApiKey()));
             return passiveSilent(properties.getDify().isEnabled() ? "passive chat unavailable" : "dify disabled");
         }
 
@@ -410,6 +423,20 @@ public class MessageRouterService {
                 .withSilentReason(reason);
     }
 
+    private String passiveChatUnavailableReason() {
+        QqBotProperties.Dify dify = properties.getDify();
+        if (!dify.isEnabled()) {
+            return DIFY_DISABLED;
+        }
+        if (!hasText(dify.getPassiveChatApiKey())) {
+            return PASSIVE_CHAT_API_KEY_EMPTY;
+        }
+        if (!hasText(dify.getPassiveChatWorkflowId())) {
+            return PASSIVE_CHAT_WORKFLOW_EMPTY;
+        }
+        return PASSIVE_CHAT_REPLY_EMPTY_OR_INVALID;
+    }
+
     private String botName() {
         String displayName = botIdentityService.getDisplayName();
         if (displayName != null && !displayName.isBlank()) {
@@ -426,6 +453,10 @@ public class MessageRouterService {
         return properties.getAdmins().stream()
                 .filter(admin -> admin != null && !admin.isBlank())
                 .anyMatch(admin -> admin.equals(userId));
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private Long parseLong(String value) {

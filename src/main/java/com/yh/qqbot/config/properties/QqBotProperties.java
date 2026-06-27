@@ -355,7 +355,11 @@ public class QqBotProperties {
         private String apiServerHost = "http://127.0.0.1:3000";
         private String eventServerHost = "ws://127.0.0.1:3001";
         private String accessToken = "";
+        private String selfId = "";
+        private List<String> allowedGroupIds = new ArrayList<>();
         private boolean dryRun = true;
+        @NotNull
+        private Ws ws = new Ws();
 
         public String getApiServerHost() {
             return apiServerHost;
@@ -381,12 +385,76 @@ public class QqBotProperties {
             this.accessToken = accessToken;
         }
 
+        public String getSelfId() {
+            return selfId;
+        }
+
+        public void setSelfId(String selfId) {
+            this.selfId = selfId;
+        }
+
+        public List<String> getAllowedGroupIds() {
+            return allowedGroupIds;
+        }
+
+        public void setAllowedGroupIds(List<String> allowedGroupIds) {
+            this.allowedGroupIds = allowedGroupIds == null ? new ArrayList<>() : new ArrayList<>(allowedGroupIds);
+        }
+
         public boolean isDryRun() {
             return dryRun;
         }
 
         public void setDryRun(boolean dryRun) {
             this.dryRun = dryRun;
+        }
+
+        public Ws getWs() {
+            return ws;
+        }
+
+        public void setWs(Ws ws) {
+            this.ws = ws == null ? new Ws() : ws;
+        }
+    }
+
+    public static class Ws {
+        private boolean enabled = false;
+        private String url = "ws://127.0.0.1:3001/";
+        private String accessToken = "";
+        @Min(1)
+        private long reconnectDelayMs = 5000;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getAccessToken() {
+            return accessToken;
+        }
+
+        public void setAccessToken(String accessToken) {
+            this.accessToken = accessToken;
+        }
+
+        public long getReconnectDelayMs() {
+            return reconnectDelayMs;
+        }
+
+        public void setReconnectDelayMs(long reconnectDelayMs) {
+            this.reconnectDelayMs = reconnectDelayMs;
         }
     }
 

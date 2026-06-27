@@ -577,3 +577,127 @@ docker exec -it qqbot-mysql-dev mysql -uqqbot -pqqbot_dev_pwd qqbot -e "select i
 ```
 
 如果策略拒绝、Dify C 失败、`shouldReply=false`、回复为空或置信度低于阈值，系统会返回 `SILENT`，并且不会写入 trigger_log、不会写主动插话冷却。
+
+## 12. 第八阶段 SnowLuma WebSocket 真实联调
+
+第八阶段新增 SnowLuma / OneBot v11 WebSocket 接入。真实 QQ 群消息会通过 WebSocket 进入后端，转换成 `BotGroupMessage` 后仍然走现有 `MessageRouterService`，路由顺序保持不变：
+
+```text
+去重 -> 群配置 -> 群总开关 -> 管理员指令/安全词 -> 被动聊天 B -> 普通表情包 A -> 主动插话 C -> 静默
+```
+
+### 12.1 启动方式
+
+dev profile 默认仍然使用 `MockMessageSender`，并且 `qqbot.onebot.ws.enabled=false`，不会自动连接 SnowLuma。真实联调建议使用非 dev profile，并通过环境变量启用 WebSocket：
+
+```powershell
+$env:QQBOT_ONEBOT_WS_ENABLED="true"
+$env:QQBOT_ONEBOT_WS_URL="ws://127.0.0.1:3001/"
+$env:QQBOT_ONEBOT_WS_TOKEN="你的 SnowLuma access_token"
+$env:QQBOT_ONEBOT_SELF_ID="1771183256"
+$env:QQBOT_ONEBOT_ALLOWED_GROUP_IDS="736566774"
+$env:QQBOT_ONEBOT_WS_RECONNECT_DELAY_MS="5000"
+.\mvnw.cmd spring-boot:run
+```
+
+连接时后端会拼接为：
+
+```text
+ws://127.0.0.1:3001/?access_token=你的 SnowLuma access_token
+```
+
+日志中应看到：
+
+```text
+QQ message sender active: OneBotWsMessageSender
+Connecting OneBot WebSocket. url=ws://127.0.0.1:3001/
+OneBot WebSocket connected.
+```
+
+不要把真实 token 写入 `application.yaml`、`application-dev.yaml` 或 `.bot.json`。
+
+### 12.2 配置项
+
+```yaml
+qqbot:
+  onebot:
+    self-id: ${QQBOT_ONEBOT_SELF_ID:}
+    allowed-group-ids: ${QQBOT_ONEBOT_ALLOWED_GROUP_IDS:}
+    ws:
+      enabled: ${QQBOT_ONEBOT_WS_ENABLED:false}
+      url: ${QQBOT_ONEBOT_WS_URL:ws://127.0.0.1:3001/}
+      access-token: ${QQBOT_ONEBOT_WS_TOKEN:}
+      reconnect-delay-ms: ${QQBOT_ONEBOT_WS_RECONNECT_DELAY_MS:5000}
+```
+
+`allowed-group-ids` 是真实消息白名单。建议真实联调时只填测试群 `736566774`，避免机器人误入其他群。
+
+### 12.3 发送格式
+
+文字发送使用 OneBot WebSocket action：
+
+```json
+{
+  "action": "send_group_msg",
+  "params": {
+    "group_id": "736566774",
+    "message": [
+      {
+        "type": "text",
+        "data": {
+          "text": "回复内容"
+        }
+      }
+    ]
+  },
+  "echo": "qqbot-ws-uuid"
+}
+```
+
+图片发送会把 Windows 绝对路径转换成 `file:///`：
+
+```json
+{
+  "action": "send_group_msg",
+  "params": {
+    "group_id": "736566774",
+    "message": [
+      {
+        "type": "image",
+        "data": {
+          "file": "file:///C:/qqbot/memes/laugh_01.png"
+        }
+      }
+    ]
+  },
+  "echo": "qqbot-ws-uuid"
+}
+```
+
+### 12.4 真实联调前数据库检查
+
+测试群需要有 `group_config`：
+
+```sql
+select group_id, bot_on, enable_chat, enable_auto_join
+from group_config
+where group_id = '736566774';
+```
+
+建议初次真实联调：
+
+```sql
+update group_config
+set bot_on = 1, enable_chat = 1, enable_auto_join = 0
+where group_id = '736566774';
+```
+
+等 A/B 稳定后，再把 `enable_auto_join` 改成 `1` 验证 C 主动插话。
+
+### 12.5 验收建议
+
+1. 在测试群发送普通关键词消息，命中 A 时应发送图片。
+2. `@1771183256 你好` 或群里叫机器人别名时，应进入 B 被动聊天并发送文字。
+3. 开启 `enable_auto_join=1` 后，普通消息在 A 未命中且策略通过时，C 会低频主动插话。
+4. 机器人自己发出的消息会被 `self-id` 过滤，不会再次触发自己。
+5. SnowLuma action 返回包、心跳等非群消息事件会被忽略。
