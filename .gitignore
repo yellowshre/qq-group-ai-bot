@@ -6,6 +6,7 @@ target/
 src/main/resources/simbot-bots/*.bot.json
 !src/main/resources/simbot-bots/*.bot.example.json
 scripts/onebot-local.env
+secret-replacements.txt
 
 ### STS ###
 .apt_generated
