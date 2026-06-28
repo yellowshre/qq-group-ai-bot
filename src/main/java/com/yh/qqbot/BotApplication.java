@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @EnableSimbot
 @EnableAsync
-@MapperScan("com.yh.qqbot.mapper")
+@MapperScan({"com.yh.qqbot.mapper", "com.yh.qqbot.chat.history.mapper"})
 @SpringBootApplication
 @EnableConfigurationProperties(QqBotProperties.class)
 public class BotApplication {
