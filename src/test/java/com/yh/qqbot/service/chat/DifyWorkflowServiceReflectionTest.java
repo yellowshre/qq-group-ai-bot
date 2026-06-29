@@ -39,6 +39,7 @@ class DifyWorkflowServiceReflectionTest {
         assertThat(inputs.get("groupId")).isInstanceOf(String.class).isEqualTo("10001");
         assertThat(inputs.get("userId")).isInstanceOf(String.class).isEqualTo("20001");
         assertThat(inputs.get("recentMessages")).isInstanceOf(String.class).isEqualTo("before");
+        assertThat(inputs.get("knowledgeContext")).isEqualTo("");
         stubRunWorkflow(client, "passive-chat-reply", inputs, "20001", "passive-key",
                 Optional.of(difyResponse(Map.of("replyText", "hi there", "confidence", 0.88))));
         Object service = service(client, properties);
@@ -74,6 +75,7 @@ class DifyWorkflowServiceReflectionTest {
         Map<String, Object> inputs = sceneInputs("funny", 10001L, 20001L);
         assertThat(inputs.get("groupId")).isInstanceOf(String.class).isEqualTo("10001");
         assertThat(inputs.get("userId")).isInstanceOf(String.class).isEqualTo("20001");
+        assertThat(inputs.get("knowledgeContext")).isEqualTo("");
         stubRunWorkflow(client, "meme-scene", inputs, "20001", "meme-key",
                 Optional.of(difyResponse(Map.of("sceneCode", "laugh", "confidence", 0.88))));
         Object service = service(client, properties);
@@ -165,6 +167,7 @@ class DifyWorkflowServiceReflectionTest {
         inputs.put("botName", botName);
         inputs.put("persona", persona);
         inputs.put("recentMessages", String.join("\n", recentMessages));
+        inputs.put("knowledgeContext", "");
         return inputs;
     }
 
@@ -173,6 +176,7 @@ class DifyWorkflowServiceReflectionTest {
         inputs.put("text", text);
         inputs.put("groupId", String.valueOf(groupId));
         inputs.put("userId", String.valueOf(userId));
+        inputs.put("knowledgeContext", "");
         return inputs;
     }
 

@@ -106,6 +106,7 @@ class DifyWorkflowServiceActiveReplyReflectionTest {
                 org.mockito.ArgumentMatchers.eq("test-active-key"));
         assertThat(inputsCaptor.getValue().get("groupId")).isInstanceOf(String.class).isEqualTo("10001");
         assertThat(inputsCaptor.getValue().get("userId")).isInstanceOf(String.class).isEqualTo("20001");
+        assertThat(inputsCaptor.getValue().get("knowledgeContext")).isEqualTo("");
         assertThat(inputsCaptor.getValue().get("recentMessages")).isEqualTo("用户20001：这事有点意思");
     }
 

@@ -120,7 +120,11 @@ public class PersistentGroupConfigService implements GroupConfigService {
                 null,
                 properties.getDefaultSafeReply(),
                 properties.getDefaultPersona(),
-                MemoryMode.SHORT
+                MemoryMode.SHORT,
+                false,
+                false,
+                false,
+                false
         );
     }
 
@@ -152,7 +156,11 @@ public class PersistentGroupConfigService implements GroupConfigService {
                 entity.getSafeWord(),
                 blankToDefault(entity.getSafeWordReply(), properties.getDefaultSafeReply()),
                 blankToDefault(entity.getPersona(), properties.getDefaultPersona()),
-                parseMemoryMode(entity.getMemoryMode())
+                parseMemoryMode(entity.getMemoryMode()),
+                Boolean.TRUE.equals(entity.getEnableKnowledgeContext()),
+                Boolean.TRUE.equals(entity.getEnableMemeKnowledge()),
+                Boolean.TRUE.equals(entity.getEnablePassiveChatKnowledge()),
+                Boolean.TRUE.equals(entity.getEnableActiveChatKnowledge())
         );
     }
 
@@ -171,6 +179,10 @@ public class PersistentGroupConfigService implements GroupConfigService {
         entity.setSafeWordReply(snapshot.safeWordReply());
         entity.setPersona(snapshot.persona());
         entity.setMemoryMode(snapshot.memoryMode().name());
+        entity.setEnableKnowledgeContext(snapshot.enableKnowledgeContext());
+        entity.setEnableMemeKnowledge(snapshot.enableMemeKnowledge());
+        entity.setEnablePassiveChatKnowledge(snapshot.enablePassiveChatKnowledge());
+        entity.setEnableActiveChatKnowledge(snapshot.enableActiveChatKnowledge());
         return entity;
     }
 
@@ -209,7 +221,11 @@ public class PersistentGroupConfigService implements GroupConfigService {
                 snapshot.safeWord(),
                 blankToDefault(snapshot.safeWordReply(), properties.getDefaultSafeReply()),
                 blankToDefault(snapshot.persona(), properties.getDefaultPersona()),
-                snapshot.memoryMode() == null ? MemoryMode.SHORT : snapshot.memoryMode());
+                snapshot.memoryMode() == null ? MemoryMode.SHORT : snapshot.memoryMode(),
+                snapshot.enableKnowledgeContext(),
+                snapshot.enableMemeKnowledge(),
+                snapshot.enablePassiveChatKnowledge(),
+                snapshot.enableActiveChatKnowledge());
     }
 
     private boolean defaultTrue(Boolean value) {

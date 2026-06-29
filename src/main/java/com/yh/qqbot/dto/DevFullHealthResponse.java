@@ -14,6 +14,12 @@ public record DevFullHealthResponse(
         OneBotStatus oneBot,
         DifyStatus dify,
         String memeBaseDir,
+        boolean knowledgeEmbeddingEnabled,
+        boolean knowledgeContextEnabled,
+        boolean memeKnowledgeEnabled,
+        boolean passiveChatKnowledgeEnabled,
+        boolean activeChatKnowledgeEnabled,
+        KnowledgeContextConfig knowledgeContextConfig,
         GroupConfigSnapshot groupConfig
 ) {
 
@@ -35,5 +41,14 @@ public record DevFullHealthResponse(
             boolean memeSceneApiKeyConfigured,
             boolean passiveChatApiKeyConfigured,
             boolean activeChatApiKeyConfigured) {
+    }
+
+    public record KnowledgeContextConfig(
+            int maxItems,
+            int maxLength,
+            double minScore,
+            int memberProfileLimit,
+            int maxSearchCandidates,
+            int maxItemContentLength) {
     }
 }

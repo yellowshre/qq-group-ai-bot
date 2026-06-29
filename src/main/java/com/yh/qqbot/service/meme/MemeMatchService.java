@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,14 @@ public class MemeMatchService {
     }
 
     public MemeMatchResult match(String text, String groupId, String userId) {
+        return match(text, groupId, userId, "");
+    }
+
+    public MemeMatchResult match(String text, String groupId, String userId, String knowledgeContext) {
+        return match(text, groupId, userId, () -> knowledgeContext);
+    }
+
+    public MemeMatchResult match(String text, String groupId, String userId, Supplier<String> knowledgeContextSupplier) {
         String normalizedText = normalizeKeyword(text);
         if (normalizedText == null) {
             return MemeMatchResult.empty("empty text");
@@ -52,12 +61,16 @@ public class MemeMatchService {
             return keywordResult.get();
         }
 
-        Optional<MemeMatchResult> cachedSemanticResult = matchSemanticCache(normalizedText);
-        if (cachedSemanticResult.isPresent()) {
-            return cachedSemanticResult.get();
+        String knowledgeContext = safeGetKnowledgeContext(knowledgeContextSupplier);
+        boolean useKnowledgeContext = hasText(knowledgeContext);
+        if (!useKnowledgeContext) {
+            Optional<MemeMatchResult> cachedSemanticResult = matchSemanticCache(normalizedText);
+            if (cachedSemanticResult.isPresent()) {
+                return cachedSemanticResult.get();
+            }
         }
 
-        return matchDifyScene(normalizedText, parseLong(groupId), parseLong(userId));
+        return matchDifyScene(normalizedText, parseLong(groupId), parseLong(userId), useKnowledgeContext ? knowledgeContext : "");
     }
 
     public MemeMatchResult matchBySceneCode(String sceneCode) {
@@ -111,18 +124,22 @@ public class MemeMatchService {
         }
     }
 
-    private MemeMatchResult matchDifyScene(String text, Long groupId, Long userId) {
+    private MemeMatchResult matchDifyScene(String text, Long groupId, Long userId, String knowledgeContext) {
         try {
-            Optional<SceneDecision> decision = difyWorkflowService.recognizeMemeScene(text, groupId, userId);
+            Optional<SceneDecision> decision = hasText(knowledgeContext)
+                    ? difyWorkflowService.recognizeMemeScene(text, groupId, userId, knowledgeContext)
+                    : difyWorkflowService.recognizeMemeScene(text, groupId, userId);
             if (decision.isEmpty()) {
                 return MemeMatchResult.empty("meme not matched");
             }
 
             SceneDecision sceneDecision = decision.get();
-            memeCacheLookup.cacheSemanticScene(
-                    text,
-                    new MemeSemanticCacheEntry(sceneDecision.sceneCode(), sceneDecision.confidence(), Instant.now()),
-                    SEMANTIC_CACHE_TTL);
+            if (!hasText(knowledgeContext)) {
+                memeCacheLookup.cacheSemanticScene(
+                        text,
+                        new MemeSemanticCacheEntry(sceneDecision.sceneCode(), sceneDecision.confidence(), Instant.now()),
+                        SEMANTIC_CACHE_TTL);
+            }
             return resolveScene(
                     sceneDecision.sceneCode(),
                     sceneDecision.confidence(),
@@ -205,5 +222,22 @@ public class MemeMatchService {
             return null;
         }
         return text.strip();
+    }
+
+    private String safeGetKnowledgeContext(Supplier<String> supplier) {
+        if (supplier == null) {
+            return "";
+        }
+        try {
+            String value = supplier.get();
+            return value == null ? "" : value;
+        } catch (Exception ex) {
+            log.warn("Meme knowledge context supplier failed.");
+            return "";
+        }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

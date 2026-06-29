@@ -23,6 +23,10 @@ public class GroupConfigEntity {
     private String safeWordReply;
     private String persona;
     private String memoryMode;
+    private Boolean enableKnowledgeContext;
+    private Boolean enableMemeKnowledge;
+    private Boolean enablePassiveChatKnowledge;
+    private Boolean enableActiveChatKnowledge;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

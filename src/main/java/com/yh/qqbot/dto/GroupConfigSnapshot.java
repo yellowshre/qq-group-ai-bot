@@ -15,7 +15,11 @@ public record GroupConfigSnapshot(
         String safeWord,
         String safeWordReply,
         String persona,
-        MemoryMode memoryMode
+        MemoryMode memoryMode,
+        boolean enableKnowledgeContext,
+        boolean enableMemeKnowledge,
+        boolean enablePassiveChatKnowledge,
+        boolean enableActiveChatKnowledge
 ) {
 
     private static final long DEFAULT_ACTIVE_COOLDOWN_SECONDS = 180;
@@ -44,63 +48,102 @@ public record GroupConfigSnapshot(
                 safeWord,
                 safeWordReply,
                 persona,
-                memoryMode);
+                memoryMode,
+                false,
+                false,
+                false,
+                false);
     }
 
     public GroupConfigSnapshot withBotOn(boolean value) {
         return copy(value, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withEnableChat(boolean value) {
         boolean autoJoin = value && enableAutoJoin;
         return copy(botOn, value, enableMeme, enablePassiveChat, autoJoin,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withEnableMeme(boolean value) {
         return copy(botOn, enableChat, value, enablePassiveChat, enableAutoJoin,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withEnablePassiveChat(boolean value) {
         return copy(botOn, enableChat, enableMeme, value, enableAutoJoin,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withEnableAutoJoin(boolean value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, value,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withActiveCooldownSeconds(long value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
-                value, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode);
+                value, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withActiveMaxPerHour(long value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
-                activeCooldownSeconds, value, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, value, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withActiveMaxPerDay(long value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
-                activeCooldownSeconds, activeMaxPerHour, value, safeWord, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, value, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withSafeWord(String value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, value, safeWordReply, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, value, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withSafeWordReply(String value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, value, persona, memoryMode);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, value, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
     public GroupConfigSnapshot withMemoryMode(MemoryMode value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
-                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, value);
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, value,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
+    }
+
+    public GroupConfigSnapshot withEnableKnowledgeContext(boolean value) {
+        return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                value, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
+    }
+
+    public GroupConfigSnapshot withEnableMemeKnowledge(boolean value) {
+        return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, value, enablePassiveChatKnowledge, enableActiveChatKnowledge);
+    }
+
+    public GroupConfigSnapshot withEnablePassiveChatKnowledge(boolean value) {
+        return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, value, enableActiveChatKnowledge);
+    }
+
+    public GroupConfigSnapshot withEnableActiveChatKnowledge(boolean value) {
+        return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, value);
     }
 
     public boolean passiveChatEnabled() {
@@ -123,7 +166,11 @@ public record GroupConfigSnapshot(
             String newSafeWord,
             String newSafeWordReply,
             String newPersona,
-            MemoryMode newMemoryMode) {
+            MemoryMode newMemoryMode,
+            boolean newEnableKnowledgeContext,
+            boolean newEnableMemeKnowledge,
+            boolean newEnablePassiveChatKnowledge,
+            boolean newEnableActiveChatKnowledge) {
         return new GroupConfigSnapshot(
                 groupId,
                 newBotOn,
@@ -137,6 +184,10 @@ public record GroupConfigSnapshot(
                 newSafeWord,
                 newSafeWordReply,
                 newPersona,
-                newMemoryMode);
+                newMemoryMode,
+                newEnableKnowledgeContext,
+                newEnableMemeKnowledge,
+                newEnablePassiveChatKnowledge,
+                newEnableActiveChatKnowledge);
     }
 }

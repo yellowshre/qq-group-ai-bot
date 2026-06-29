@@ -3,7 +3,11 @@ package com.yh.qqbot.dto;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public record DifyMemeSceneRequest(String text, String groupId, String userId) {
+public record DifyMemeSceneRequest(String text, String groupId, String userId, String knowledgeContext) {
+
+    public DifyMemeSceneRequest(String text, String groupId, String userId) {
+        this(text, groupId, userId, "");
+    }
 
     public Map<String, Object> toInputs() {
         Map<String, Object> inputs = new LinkedHashMap<>();
@@ -14,6 +18,7 @@ public record DifyMemeSceneRequest(String text, String groupId, String userId) {
         if (userId != null) {
             inputs.put("userId", userId);
         }
+        inputs.put("knowledgeContext", knowledgeContext == null ? "" : knowledgeContext);
         return inputs;
     }
 }

@@ -10,7 +10,18 @@ public record DifyPassiveChatRequest(
         String userId,
         String botName,
         String persona,
-        List<String> recentMessages) {
+        List<String> recentMessages,
+        String knowledgeContext) {
+
+    public DifyPassiveChatRequest(
+            String text,
+            String groupId,
+            String userId,
+            String botName,
+            String persona,
+            List<String> recentMessages) {
+        this(text, groupId, userId, botName, persona, recentMessages, "");
+    }
 
     public Map<String, Object> toInputs() {
         Map<String, Object> inputs = new LinkedHashMap<>();
@@ -24,6 +35,7 @@ public record DifyPassiveChatRequest(
         inputs.put("botName", botName == null ? "" : botName);
         inputs.put("persona", persona == null ? "" : persona);
         inputs.put("recentMessages", recentMessages == null ? "" : String.join("\n", recentMessages));
+        inputs.put("knowledgeContext", knowledgeContext == null ? "" : knowledgeContext);
         return inputs;
     }
 }

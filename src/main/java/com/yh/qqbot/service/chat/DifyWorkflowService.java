@@ -50,13 +50,21 @@ public class DifyWorkflowService {
     }
 
     public Optional<SceneDecision> recognizeMemeScene(String text, Long groupId, Long userId) {
+        return recognizeMemeScene(text, groupId, userId, "");
+    }
+
+    public Optional<SceneDecision> recognizeMemeScene(String text, Long groupId, Long userId, String knowledgeContext) {
         QqBotProperties.Dify dify = properties.getDify();
         if (!dify.isEnabled() || !hasText(dify.getMemeSceneApiKey())) {
             return Optional.empty();
         }
 
         try {
-            DifyMemeSceneRequest request = new DifyMemeSceneRequest(text, toInputString(groupId), toInputString(userId));
+            DifyMemeSceneRequest request = new DifyMemeSceneRequest(
+                    text,
+                    toInputString(groupId),
+                    toInputString(userId),
+                    knowledgeContext);
             String difyUser = userId == null ? null : String.valueOf(userId);
             return difyClient.runWorkflow(dify.getSceneWorkflowId(), request.toInputs(), difyUser, dify.getMemeSceneApiKey())
                     .map(this::outputs)
@@ -79,6 +87,17 @@ public class DifyWorkflowService {
             String botName,
             String persona,
             List<String> recentMessages) {
+        return generatePassiveReply(text, groupId, userId, botName, persona, recentMessages, "");
+    }
+
+    public Optional<PassiveChatReply> generatePassiveReply(
+            String text,
+            Long groupId,
+            Long userId,
+            String botName,
+            String persona,
+            List<String> recentMessages,
+            String knowledgeContext) {
         QqBotProperties.Dify dify = properties.getDify();
         if (!dify.isEnabled() || !hasText(dify.getPassiveChatApiKey())) {
             return Optional.empty();
@@ -96,7 +115,8 @@ public class DifyWorkflowService {
                     toInputString(userId),
                     botName,
                     persona,
-                    recentMessages);
+                    recentMessages,
+                    knowledgeContext);
             String difyUser = userId == null ? null : String.valueOf(userId);
             return difyClient.runWorkflow(
                             dify.getPassiveChatWorkflowId(),
@@ -167,7 +187,8 @@ public class DifyWorkflowService {
                     request == null ? "" : request.persona(),
                     request == null ? "" : request.recentMessages(),
                     request == null ? "" : request.activeReason(),
-                    request == null ? "" : request.riskHint()
+                    request == null ? "" : request.riskHint(),
+                    request == null ? "" : request.knowledgeContext()
             );
             String difyUser = request == null ? null : toInputString(request.userId());
             Optional<Map<String, Object>> response = difyClient.runWorkflow(

@@ -21,6 +21,14 @@ public class AdminCommandService {
     private static final String CMD_MEME_OFF = "\u0023\u5173\u95ed\u8868\u60c5\u5305";
     private static final String CMD_BOT_QUIET = "\u0023\u673a\u5668\u4eba\u5b89\u9759";
     private static final String CMD_BOT_RESUME = "\u0023\u673a\u5668\u4eba\u6062\u590d";
+    private static final String CMD_KNOWLEDGE_ON = "\u0023\u5f00\u542f\u77e5\u8bc6\u5e93";
+    private static final String CMD_KNOWLEDGE_OFF = "\u0023\u5173\u95ed\u77e5\u8bc6\u5e93";
+    private static final String CMD_MEME_KNOWLEDGE_ON = "\u0023\u5f00\u542f\u8868\u60c5\u5305\u77e5\u8bc6";
+    private static final String CMD_MEME_KNOWLEDGE_OFF = "\u0023\u5173\u95ed\u8868\u60c5\u5305\u77e5\u8bc6";
+    private static final String CMD_CHAT_KNOWLEDGE_ON = "\u0023\u5f00\u542f\u804a\u5929\u77e5\u8bc6";
+    private static final String CMD_CHAT_KNOWLEDGE_OFF = "\u0023\u5173\u95ed\u804a\u5929\u77e5\u8bc6";
+    private static final String CMD_ACTIVE_KNOWLEDGE_ON = "\u0023\u5f00\u542f\u4e3b\u52a8\u77e5\u8bc6";
+    private static final String CMD_ACTIVE_KNOWLEDGE_OFF = "\u0023\u5173\u95ed\u4e3b\u52a8\u77e5\u8bc6";
 
     private final QqBotProperties properties;
     private final GroupConfigService groupConfigService;
@@ -83,6 +91,54 @@ public class AdminCommandService {
                     message, "MEME_ON", "enable_meme=true", snapshot -> snapshot.withEnableMeme(true), "meme route on");
             case CMD_MEME_OFF -> update(
                     message, "MEME_OFF", "enable_meme=false", snapshot -> snapshot.withEnableMeme(false), "meme route off");
+            case CMD_KNOWLEDGE_ON -> update(
+                    message,
+                    "KNOWLEDGE_CONTEXT_ON",
+                    "enable_knowledge_context=true",
+                    snapshot -> snapshot.withEnableKnowledgeContext(true),
+                    "knowledge context on");
+            case CMD_KNOWLEDGE_OFF -> update(
+                    message,
+                    "KNOWLEDGE_CONTEXT_OFF",
+                    "enable_knowledge_context=false",
+                    snapshot -> snapshot.withEnableKnowledgeContext(false),
+                    "knowledge context off");
+            case CMD_MEME_KNOWLEDGE_ON -> update(
+                    message,
+                    "MEME_KNOWLEDGE_ON",
+                    "enable_meme_knowledge=true",
+                    snapshot -> snapshot.withEnableMemeKnowledge(true),
+                    "meme knowledge on");
+            case CMD_MEME_KNOWLEDGE_OFF -> update(
+                    message,
+                    "MEME_KNOWLEDGE_OFF",
+                    "enable_meme_knowledge=false",
+                    snapshot -> snapshot.withEnableMemeKnowledge(false),
+                    "meme knowledge off");
+            case CMD_CHAT_KNOWLEDGE_ON -> update(
+                    message,
+                    "PASSIVE_CHAT_KNOWLEDGE_ON",
+                    "enable_passive_chat_knowledge=true",
+                    snapshot -> snapshot.withEnablePassiveChatKnowledge(true),
+                    "passive chat knowledge on");
+            case CMD_CHAT_KNOWLEDGE_OFF -> update(
+                    message,
+                    "PASSIVE_CHAT_KNOWLEDGE_OFF",
+                    "enable_passive_chat_knowledge=false",
+                    snapshot -> snapshot.withEnablePassiveChatKnowledge(false),
+                    "passive chat knowledge off");
+            case CMD_ACTIVE_KNOWLEDGE_ON -> update(
+                    message,
+                    "ACTIVE_CHAT_KNOWLEDGE_ON",
+                    "enable_active_chat_knowledge=true",
+                    snapshot -> snapshot.withEnableActiveChatKnowledge(true),
+                    "active chat knowledge on");
+            case CMD_ACTIVE_KNOWLEDGE_OFF -> update(
+                    message,
+                    "ACTIVE_CHAT_KNOWLEDGE_OFF",
+                    "enable_active_chat_knowledge=false",
+                    snapshot -> snapshot.withEnableActiveChatKnowledge(false),
+                    "active chat knowledge off");
             case "#memshort" -> update(
                     message,
                     "MEM_SHORT",
@@ -114,6 +170,10 @@ public class AdminCommandService {
                 meme A: %s
                 passive chat B: %s
                 active chat C: %s
+                knowledge context: %s
+                meme knowledge A: %s
+                passive chat knowledge B: %s
+                active chat knowledge C: %s
                 active cooldown: %ds
                 active hourly limit: %d
                 active daily limit: %d
@@ -122,6 +182,10 @@ public class AdminCommandService {
                 onOff(config.enableMeme()),
                 onOff(config.passiveChatEnabled()),
                 onOff(config.activeChatEnabled()),
+                onOff(config.enableKnowledgeContext()),
+                onOff(config.enableMemeKnowledge()),
+                onOff(config.enablePassiveChatKnowledge()),
+                onOff(config.enableActiveChatKnowledge()),
                 config.activeCooldownSeconds(),
                 config.activeMaxPerHour(),
                 config.activeMaxPerDay()).strip();
@@ -180,6 +244,10 @@ public class AdminCommandService {
     private boolean isKnownCommand(String command) {
         return switch (command) {
             case CMD_STATUS, CMD_ACTIVE_ON, CMD_ACTIVE_OFF, CMD_MEME_ON, CMD_MEME_OFF, CMD_BOT_QUIET, CMD_BOT_RESUME,
+                    CMD_KNOWLEDGE_ON, CMD_KNOWLEDGE_OFF,
+                    CMD_MEME_KNOWLEDGE_ON, CMD_MEME_KNOWLEDGE_OFF,
+                    CMD_CHAT_KNOWLEDGE_ON, CMD_CHAT_KNOWLEDGE_OFF,
+                    CMD_ACTIVE_KNOWLEDGE_ON, CMD_ACTIVE_KNOWLEDGE_OFF,
                     "#boton", "#botoff", "#chaton", "#chatoff", "#autochaton", "#autochatoff",
                     "#memshort", "#memlong", "#clearchatctx", "#setsafeword", "#setsafereply" -> true;
             default -> false;

@@ -49,6 +49,7 @@ public class HealthCheckController {
     public DevFullHealthResponse full(@RequestParam(required = false) String groupId) {
         CountResult sceneCount = count("select count(*) from scene_dict");
         CountResult enabledMemeCount = count("select count(*) from meme_material where enabled = 1");
+        GroupConfigSnapshot groupConfig = groupConfig(groupId);
         return new DevFullHealthResponse(
                 activeProfiles(),
                 mysqlStatus(sceneCount, enabledMemeCount),
@@ -61,7 +62,13 @@ public class HealthCheckController {
                 oneBotStatus(),
                 difyStatus(),
                 properties.getMeme().getBaseDir(),
-                groupConfig(groupId)
+                properties.getKnowledge().getEmbedding().isEnabled(),
+                groupConfig != null && groupConfig.enableKnowledgeContext(),
+                groupConfig != null && groupConfig.enableMemeKnowledge(),
+                groupConfig != null && groupConfig.enablePassiveChatKnowledge(),
+                groupConfig != null && groupConfig.enableActiveChatKnowledge(),
+                knowledgeContextConfig(),
+                groupConfig
         );
     }
 
@@ -127,6 +134,17 @@ public class HealthCheckController {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private DevFullHealthResponse.KnowledgeContextConfig knowledgeContextConfig() {
+        QqBotProperties.Context context = properties.getKnowledge().getContext();
+        return new DevFullHealthResponse.KnowledgeContextConfig(
+                context.getMaxItems(),
+                context.getMaxLength(),
+                context.getMinScore(),
+                context.getMemberProfileLimit(),
+                context.getMaxSearchCandidates(),
+                context.getMaxItemContentLength());
     }
 
     private String rootMessage(Throwable throwable) {

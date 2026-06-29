@@ -11,7 +11,20 @@ public record DifyActiveChatRequest(
         String persona,
         String recentMessages,
         String activeReason,
-        String riskHint) {
+        String riskHint,
+        String knowledgeContext) {
+
+    public DifyActiveChatRequest(
+            String text,
+            String groupId,
+            String userId,
+            String botName,
+            String persona,
+            String recentMessages,
+            String activeReason,
+            String riskHint) {
+        this(text, groupId, userId, botName, persona, recentMessages, activeReason, riskHint, "");
+    }
 
     public Map<String, Object> toInputs() {
         Map<String, Object> inputs = new LinkedHashMap<>();
@@ -23,6 +36,7 @@ public record DifyActiveChatRequest(
         inputs.put("recentMessages", recentMessages == null ? "" : recentMessages);
         inputs.put("activeReason", activeReason == null ? "" : activeReason);
         inputs.put("riskHint", riskHint == null ? "" : riskHint);
+        inputs.put("knowledgeContext", knowledgeContext == null ? "" : knowledgeContext);
         return inputs;
     }
 }

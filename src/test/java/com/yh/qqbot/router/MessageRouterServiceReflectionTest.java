@@ -10,7 +10,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 class MessageRouterServiceReflectionTest {
@@ -57,6 +59,27 @@ class MessageRouterServiceReflectionTest {
 
         assertThat(invoke(result, "passiveChatHit")).isEqualTo(false);
         verifyNoInteractions(fixture.difyWorkflowService());
+        verifyNoInteractions(fixture.knowledgeContextService());
+    }
+
+    @Test
+    void passiveChatKnowledgeEnabledPassesContextToDify() throws Exception {
+        Fixture fixture = fixture(true, false, true, false, true, false);
+        Object message = message(true, false, "hello knowledge");
+        stubKnowledgeContext(fixture.knowledgeContextService(), "reviewed passive context");
+        stubPassiveReplyWithKnowledge(
+                fixture.difyWorkflowService(),
+                "hello knowledge",
+                "reviewed passive context",
+                Optional.of(passiveReply("reply ok", 0.88)));
+        stubNoMeme(fixture.memeMatchService(), "reply ok");
+
+        Object result = route(fixture.router(), message);
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("PASSIVE_CHAT");
+        assertThat(invoke(result, "passiveChatHit")).isEqualTo(true);
+        assertThat(invoke(result, "replyText")).isEqualTo("reply ok");
+        verifyPassiveReplyWithKnowledge(fixture.difyWorkflowService(), "reviewed passive context");
     }
 
     @Test
@@ -94,6 +117,27 @@ class MessageRouterServiceReflectionTest {
         assertThat(invoke(result, "workflowType")).isEqualTo("ACTIVE_DIFY_CHAT");
         assertThat(invoke(result, "replyText")).isEqualTo("active reply");
         assertThat(invoke(outbound, "text")).isEqualTo("active reply");
+    }
+
+    @Test
+    void activeChatKnowledgeEnabledPassesContextToDifyRequest() throws Exception {
+        Fixture fixture = fixture(true, true, true, false, false, true);
+        Object message = message(false, false, "ordinary active message");
+        stubNoMeme(fixture.memeMatchService(), "ordinary active message");
+        stubActivePolicy(fixture.activeChatPolicyService(), activePolicyAllowed());
+        stubKnowledgeContext(fixture.knowledgeContextService(), "reviewed active context");
+        stubActiveReply(fixture.difyWorkflowService(), activeReply("active reply", 0.91));
+
+        Object result = route(fixture.router(), message);
+
+        assertThat(invoke(result, "routeType").toString()).isEqualTo("ACTIVE_CHAT");
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Object> requestCaptor = ArgumentCaptor.forClass((Class<Object>) cls("com.yh.qqbot.dto.ActiveChatRequest"));
+        Object verified = Mockito.verify(fixture.difyWorkflowService());
+        invoke(verified, "generateActiveReply",
+                new Class<?>[]{cls("com.yh.qqbot.dto.ActiveChatRequest")},
+                requestCaptor.capture());
+        assertThat(invoke(requestCaptor.getValue(), "knowledgeContext")).isEqualTo("reviewed active context");
     }
 
     @Test
@@ -305,13 +349,24 @@ class MessageRouterServiceReflectionTest {
     }
 
     private Fixture fixture(boolean difyEnabled, boolean activeChatEnabled) throws Exception {
+        return fixture(difyEnabled, activeChatEnabled, false, false, false, false);
+    }
+
+    private Fixture fixture(
+            boolean difyEnabled,
+            boolean activeChatEnabled,
+            boolean enableKnowledgeContext,
+            boolean enableMemeKnowledge,
+            boolean enablePassiveChatKnowledge,
+            boolean enableActiveChatKnowledge) throws Exception {
         Object messageDedupService = proxy("com.yh.qqbot.service.rate.MessageDedupService", (method, args) -> {
             if ("firstSeen".equals(method.getName())) {
                 return true;
             }
             return defaultValue(method.getReturnType());
         });
-        Object groupConfig = groupConfig(activeChatEnabled);
+        Object groupConfig = groupConfig(activeChatEnabled, enableKnowledgeContext,
+                enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
         Object groupConfigService = proxy("com.yh.qqbot.service.config.GroupConfigService", (method, args) -> {
             if ("getConfig".equals(method.getName())) {
                 return groupConfig;
@@ -333,6 +388,7 @@ class MessageRouterServiceReflectionTest {
         Object triggerLogService = mockClass("com.yh.qqbot.service.log.TriggerLogService");
         Object groupPersonaService = mockClass("com.yh.qqbot.service.chat.GroupPersonaService");
         Object difyWorkflowService = mockClass("com.yh.qqbot.service.chat.DifyWorkflowService");
+        Object knowledgeContextService = mockClass("com.yh.qqbot.chat.history.service.context.KnowledgeContextService");
         Object properties = properties(difyEnabled);
         Object activeChatPolicyService = mockClass("com.yh.qqbot.service.active.ActiveChatPolicyService");
         Object botIdentityService = cls("com.yh.qqbot.service.bot.BotIdentityService")
@@ -359,6 +415,7 @@ class MessageRouterServiceReflectionTest {
                         cls("com.yh.qqbot.service.active.ActiveChatPolicyService"),
                         cls("com.yh.qqbot.service.bot.BotIdentityService"),
                         cls("com.yh.qqbot.service.bot.BotSafetyWordService"),
+                        cls("com.yh.qqbot.chat.history.service.context.KnowledgeContextService"),
                         cls("com.yh.qqbot.config.properties.QqBotProperties"))
                 .newInstance(
                         messageDedupService,
@@ -375,6 +432,7 @@ class MessageRouterServiceReflectionTest {
                         activeChatPolicyService,
                         botIdentityService,
                         botSafetyWordService,
+                        knowledgeContextService,
                         properties);
 
         whenInvoke(adminCommandService, "tryHandle",
@@ -385,7 +443,7 @@ class MessageRouterServiceReflectionTest {
         Mockito.clearInvocations(activeChatPolicyService);
 
         return new Fixture(router, memeMatchService, difyWorkflowService, activeChatPolicyService,
-                triggerLogService, chatContextState);
+                triggerLogService, knowledgeContextService, chatContextState);
     }
 
     private Object route(Object router, Object message) throws Exception {
@@ -410,6 +468,36 @@ class MessageRouterServiceReflectionTest {
                 reply);
     }
 
+    private void stubPassiveReplyWithKnowledge(
+            Object dify,
+            String text,
+            String knowledgeContext,
+            Optional<?> reply) throws Exception {
+        Method method = dify.getClass().getMethod("generatePassiveReply",
+                String.class, Long.class, Long.class, String.class, String.class, List.class, String.class);
+        when(method.invoke(dify,
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(knowledgeContext))).thenReturn(reply);
+    }
+
+    private void verifyPassiveReplyWithKnowledge(Object dify, String knowledgeContext) throws Exception {
+        Object verified = Mockito.verify(dify);
+        invoke(verified, "generatePassiveReply",
+                new Class<?>[]{String.class, Long.class, Long.class, String.class, String.class, List.class, String.class},
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(knowledgeContext));
+    }
+
     private void stubNoMeme(Object memeMatchService, String text) throws Exception {
         whenInvoke(memeMatchService, "match",
                 new Class<?>[]{String.class, String.class, String.class},
@@ -422,6 +510,25 @@ class MessageRouterServiceReflectionTest {
                 new Class<?>[]{String.class, String.class, String.class},
                 new Object[]{text, "10001", "20001"},
                 memeResult(memeId, sceneCode, filePath));
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void stubKnowledgeContext(Object knowledgeContextService, String context) throws Exception {
+        Object result = cls("com.yh.qqbot.chat.history.service.context.KnowledgeContextService$KnowledgeContextBuildResult")
+                .getConstructor(boolean.class, String.class, List.class)
+                .newInstance(true, context, List.of());
+        Method method = knowledgeContextService.getClass().getMethod("buildContext",
+                String.class,
+                String.class,
+                String.class,
+                cls("com.yh.qqbot.chat.history.dto.KnowledgeRouteType"),
+                Integer.class);
+        when(method.invoke(knowledgeContextService,
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(result);
     }
 
     private void stubActivePolicy(Object activeChatPolicyService, Object result) throws Exception {
@@ -482,11 +589,25 @@ class MessageRouterServiceReflectionTest {
     }
 
     private Object groupConfig(boolean activeChatEnabled) throws Exception {
+        return groupConfig(activeChatEnabled, false, false, false, false);
+    }
+
+    private Object groupConfig(
+            boolean activeChatEnabled,
+            boolean enableKnowledgeContext,
+            boolean enableMemeKnowledge,
+            boolean enablePassiveChatKnowledge,
+            boolean enableActiveChatKnowledge) throws Exception {
         Object memoryMode = Enum.valueOf((Class<Enum>) cls("com.yh.qqbot.enums.MemoryMode"), "SHORT");
-        return cls("com.yh.qqbot.dto.GroupConfigSnapshot")
+        Object config = cls("com.yh.qqbot.dto.GroupConfigSnapshot")
                 .getConstructor(String.class, boolean.class, boolean.class, boolean.class,
                         String.class, String.class, String.class, cls("com.yh.qqbot.enums.MemoryMode"))
                 .newInstance("10001", true, true, activeChatEnabled, null, "safe", "persona", memoryMode);
+        config = invoke(config, "withEnableKnowledgeContext", new Class<?>[]{boolean.class}, enableKnowledgeContext);
+        config = invoke(config, "withEnableMemeKnowledge", new Class<?>[]{boolean.class}, enableMemeKnowledge);
+        config = invoke(config, "withEnablePassiveChatKnowledge", new Class<?>[]{boolean.class}, enablePassiveChatKnowledge);
+        config = invoke(config, "withEnableActiveChatKnowledge", new Class<?>[]{boolean.class}, enableActiveChatKnowledge);
+        return config;
     }
 
     private Object notCommand() throws Exception {
@@ -616,6 +737,7 @@ class MessageRouterServiceReflectionTest {
             Object difyWorkflowService,
             Object activeChatPolicyService,
             Object triggerLogService,
+            Object knowledgeContextService,
             ChatContextState chatContext) {
     }
 

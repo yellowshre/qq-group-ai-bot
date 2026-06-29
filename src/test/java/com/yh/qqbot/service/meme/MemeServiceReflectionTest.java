@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -129,6 +130,33 @@ class MemeServiceReflectionTest {
     }
 
     @Test
+    void memeKnowledgeContextCallsDifyWithContextAndSkipsSemanticCacheWrite() throws Exception {
+        CacheState cache = new CacheState();
+        cache.sceneCache.put("laugh", List.of(1L));
+        Object dify = difyMock();
+        stubDifySceneWithKnowledge(
+                dify,
+                "local phrase",
+                100L,
+                200L,
+                "reviewed meme context",
+                Optional.of(sceneDecision("laugh", 0.86)));
+        MatchFixture fixture = newMatchService(
+                cache,
+                List.of(material(1L, "", "laugh", 10, true, "C:/qqbot/memes/laugh_01.png")),
+                dify
+        );
+
+        Object result = invoke(fixture.service(), "match",
+                new Class<?>[]{String.class, String.class, String.class, Supplier.class},
+                "local phrase", "100", "200", (Supplier<String>) () -> "reviewed meme context");
+
+        assertThat((Boolean) invoke(result, "matched")).isTrue();
+        assertThat(invoke(result, "matchType")).isEqualTo("MEME_DIFY_SCENE");
+        assertThat(cache.semanticWrites).doesNotContainKey("local phrase");
+    }
+
+    @Test
     void weightedRandomReturnsEnabledMaterialWithoutThrowing() throws Exception {
         Object materialService = newMaterialService(List.of());
         Method weightedRandom = materialService.getClass().getMethod("weightedRandom", List.class);
@@ -227,6 +255,19 @@ class MemeServiceReflectionTest {
     private void stubDifyScene(Object dify, String text, Long groupId, Long userId, Optional<?> decision) throws Exception {
         Method method = dify.getClass().getMethod("recognizeMemeScene", String.class, Long.class, Long.class);
         when((Optional) method.invoke(dify, text, groupId, userId)).thenReturn((Optional) decision);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void stubDifySceneWithKnowledge(
+            Object dify,
+            String text,
+            Long groupId,
+            Long userId,
+            String knowledgeContext,
+            Optional<?> decision) throws Exception {
+        Method method = dify.getClass().getMethod("recognizeMemeScene",
+                String.class, Long.class, Long.class, String.class);
+        when((Optional) method.invoke(dify, text, groupId, userId, knowledgeContext)).thenReturn((Optional) decision);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

@@ -1,6 +1,8 @@
 package com.yh.qqbot.router;
 
 import com.yh.qqbot.config.properties.QqBotProperties;
+import com.yh.qqbot.chat.history.dto.KnowledgeRouteType;
+import com.yh.qqbot.chat.history.service.context.KnowledgeContextService;
 import com.yh.qqbot.dto.ActiveChatPolicyRequest;
 import com.yh.qqbot.dto.ActiveChatPolicyResult;
 import com.yh.qqbot.dto.ActiveChatReplyResult;
@@ -62,6 +64,7 @@ public class MessageRouterService {
     private final ActiveChatPolicyService activeChatPolicyService;
     private final BotIdentityService botIdentityService;
     private final BotSafetyWordService botSafetyWordService;
+    private final KnowledgeContextService knowledgeContextService;
     private final QqBotProperties properties;
 
     public MessageRouterService(
@@ -79,6 +82,7 @@ public class MessageRouterService {
             ActiveChatPolicyService activeChatPolicyService,
             BotIdentityService botIdentityService,
             BotSafetyWordService botSafetyWordService,
+            KnowledgeContextService knowledgeContextService,
             QqBotProperties properties) {
         this.messageDedupService = messageDedupService;
         this.groupConfigService = groupConfigService;
@@ -94,6 +98,7 @@ public class MessageRouterService {
         this.activeChatPolicyService = activeChatPolicyService;
         this.botIdentityService = botIdentityService;
         this.botSafetyWordService = botSafetyWordService;
+        this.knowledgeContextService = knowledgeContextService;
         this.properties = properties;
     }
 
@@ -144,7 +149,7 @@ public class MessageRouterService {
             return handlePassiveChat(message, config);
         }
 
-        RouteResult memeResult = buildMemeRoute(message);
+        RouteResult memeResult = buildMemeRoute(message, config);
         if (memeResult.shouldSend()) {
             return memeResult;
         }
@@ -239,14 +244,28 @@ public class MessageRouterService {
         String botName = botName();
         String persona = groupPersonaService.getPersona(groupId);
         String recentMessages = chatContextService.getRecentMessages(groupId);
+        KnowledgeContextRouteResult knowledge = buildKnowledgeContext(
+                message,
+                config,
+                KnowledgeRouteType.PASSIVE_CHAT,
+                null);
 
-        Optional<PassiveChatReply> reply = difyWorkflowService.generatePassiveReply(
-                message.effectiveText(),
-                groupId,
-                userId,
-                botName,
-                persona,
-                java.util.List.of(recentMessages));
+        Optional<PassiveChatReply> reply = knowledge.enabled()
+                ? difyWorkflowService.generatePassiveReply(
+                        message.effectiveText(),
+                        groupId,
+                        userId,
+                        botName,
+                        persona,
+                        java.util.List.of(recentMessages),
+                        knowledge.knowledgeContext())
+                : difyWorkflowService.generatePassiveReply(
+                        message.effectiveText(),
+                        groupId,
+                        userId,
+                        botName,
+                        persona,
+                        java.util.List.of(recentMessages));
         if (reply.isEmpty()) {
             String unavailableReason = passiveChatUnavailableReason();
             log.warn("Passive chat unavailable. reason={}, difyEnabled={}, baseUrlConfigured={}, passiveChatApiKeyConfigured={}",
@@ -304,8 +323,7 @@ public class MessageRouterService {
                 .withMemeMetadata(meme);
     }
 
-    private RouteResult buildMemeRoute(BotGroupMessage message) {
-        GroupConfigSnapshot config = groupConfigService.getConfig(message.groupId());
+    private RouteResult buildMemeRoute(BotGroupMessage message, GroupConfigSnapshot config) {
         if (!config.enableMeme()) {
             return RouteResult.silent("meme switch is off")
                     .withSilentReason("meme switch is off");
@@ -313,7 +331,13 @@ public class MessageRouterService {
         if (!rateLimitService.preConsumeEmoji(message.groupId())) {
             return RouteResult.silent("emoji route rate limited");
         }
-        MemeMatchResult meme = memeMatchService.match(message.effectiveText(), message.groupId(), message.userId());
+        MemeMatchResult meme = memeKnowledgeEnabled(config)
+                ? memeMatchService.match(
+                        message.effectiveText(),
+                        message.groupId(),
+                        message.userId(),
+                        () -> buildKnowledgeContext(message, config, KnowledgeRouteType.MEME, null).knowledgeContext())
+                : memeMatchService.match(message.effectiveText(), message.groupId(), message.userId());
         if (!meme.matched()) {
             return RouteResult.silent(meme.missReason() == null ? "meme not matched" : meme.missReason())
                     .withMemeMetadata(meme);
@@ -369,7 +393,8 @@ public class MessageRouterService {
                 groupPersonaService.getPersona(parseLong(message.groupId())),
                 chatContextService.getRecentMessages(parseLong(message.groupId())),
                 policy.reason(),
-                DEFAULT_RISK_HINT
+                DEFAULT_RISK_HINT,
+                buildKnowledgeContext(message, config, KnowledgeRouteType.ACTIVE_CHAT, null).knowledgeContext()
         );
         ActiveChatReplyResult reply;
         try {
@@ -451,6 +476,67 @@ public class MessageRouterService {
         return PASSIVE_CHAT_REPLY_EMPTY_OR_INVALID;
     }
 
+    private KnowledgeContextRouteResult buildKnowledgeContext(
+            BotGroupMessage message,
+            GroupConfigSnapshot config,
+            KnowledgeRouteType routeType,
+            Integer topK) {
+        if (!knowledgeEnabled(config, routeType)) {
+            return KnowledgeContextRouteResult.disabled();
+        }
+        long startedAt = System.nanoTime();
+        try {
+            KnowledgeContextService.KnowledgeContextBuildResult context = knowledgeContextService.buildContext(
+                    message.groupId(),
+                    message.effectiveText(),
+                    message.userId(),
+                    routeType,
+                    topK);
+            logKnowledgeContextMetrics(message.groupId(), routeType, context, elapsedMs(startedAt));
+            return new KnowledgeContextRouteResult(true, context.knowledgeUsed(), context.knowledgeContext());
+        } catch (Exception ex) {
+            log.warn("Knowledge context unavailable. groupId={}, routeType={}, knowledgeUsed=false, itemCount=0, maxScore=0.0, durationMs={}",
+                    message.groupId(), routeType.name(), elapsedMs(startedAt), ex);
+            return KnowledgeContextRouteResult.unavailable();
+        }
+    }
+
+    private void logKnowledgeContextMetrics(
+            String groupId,
+            KnowledgeRouteType routeType,
+            KnowledgeContextService.KnowledgeContextBuildResult context,
+            long durationMs) {
+        int itemCount = context == null || context.items() == null ? 0 : context.items().size();
+        double maxScore = context == null || context.items() == null
+                ? 0.0d
+                : context.items().stream()
+                        .mapToDouble(item -> item == null ? 0.0d : item.score())
+                        .max()
+                        .orElse(0.0d);
+        log.info("Knowledge context route. groupId={}, routeType={}, knowledgeUsed={}, itemCount={}, maxScore={}, durationMs={}",
+                groupId,
+                routeType.name(),
+                context != null && context.knowledgeUsed(),
+                itemCount,
+                maxScore,
+                durationMs);
+    }
+
+    private boolean knowledgeEnabled(GroupConfigSnapshot config, KnowledgeRouteType routeType) {
+        if (config == null || !config.enableKnowledgeContext()) {
+            return false;
+        }
+        return switch (routeType) {
+            case MEME -> config.enableMemeKnowledge();
+            case PASSIVE_CHAT -> config.enablePassiveChatKnowledge();
+            case ACTIVE_CHAT -> config.enableActiveChatKnowledge();
+        };
+    }
+
+    private boolean memeKnowledgeEnabled(GroupConfigSnapshot config) {
+        return knowledgeEnabled(config, KnowledgeRouteType.MEME);
+    }
+
     private String botName() {
         String displayName = botIdentityService.getDisplayName();
         if (displayName != null && !displayName.isBlank()) {
@@ -481,6 +567,20 @@ public class MessageRouterService {
             return Long.valueOf(value);
         } catch (NumberFormatException ex) {
             return null;
+        }
+    }
+
+    private record KnowledgeContextRouteResult(
+            boolean enabled,
+            boolean knowledgeUsed,
+            String knowledgeContext) {
+
+        private static KnowledgeContextRouteResult disabled() {
+            return new KnowledgeContextRouteResult(false, false, "");
+        }
+
+        private static KnowledgeContextRouteResult unavailable() {
+            return new KnowledgeContextRouteResult(true, false, "");
         }
     }
 }

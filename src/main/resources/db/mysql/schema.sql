@@ -16,6 +16,10 @@ CREATE TABLE IF NOT EXISTS group_config (
     safe_word_reply VARCHAR(512) NOT NULL DEFAULT '收到，我先安静一下。',
     persona VARCHAR(1024) NOT NULL DEFAULT '',
     memory_mode VARCHAR(16) NOT NULL DEFAULT 'SHORT',
+    enable_knowledge_context TINYINT(1) NOT NULL DEFAULT 0,
+    enable_meme_knowledge TINYINT(1) NOT NULL DEFAULT 0,
+    enable_passive_chat_knowledge TINYINT(1) NOT NULL DEFAULT 0,
+    enable_active_chat_knowledge TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
