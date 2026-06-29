@@ -114,6 +114,13 @@ qqbot:
       model: ${OLLAMA_EMBEDDING_MODEL:bge-m3}
       endpoint-path: ${OLLAMA_EMBEDDING_ENDPOINT:/api/embed}
       timeout-seconds: ${OLLAMA_EMBEDDING_TIMEOUT_SECONDS:30}
+    context:
+      max-items: ${QQBOT_KNOWLEDGE_CONTEXT_MAX_ITEMS:5}
+      max-length: ${QQBOT_KNOWLEDGE_CONTEXT_MAX_LENGTH:800}
+      min-score: ${QQBOT_KNOWLEDGE_CONTEXT_MIN_SCORE:0.3}
+      member-profile-limit: ${QQBOT_KNOWLEDGE_CONTEXT_MEMBER_PROFILE_LIMIT:1}
+      max-search-candidates: ${QQBOT_KNOWLEDGE_CONTEXT_MAX_SEARCH_CANDIDATES:20}
+      max-item-content-length: ${QQBOT_KNOWLEDGE_CONTEXT_MAX_ITEM_CONTENT_LENGTH:160}
   dify:
     enabled: ${DIFY_ENABLED:false}
     base-url: ${DIFY_BASE_URL:http://127.0.0.1:5001}

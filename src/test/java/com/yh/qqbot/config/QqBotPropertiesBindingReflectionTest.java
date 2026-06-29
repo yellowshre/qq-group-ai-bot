@@ -33,7 +33,11 @@ class QqBotPropertiesBindingReflectionTest {
                 .withProperty("qqbot.dify.workflow.active-chat", "active-chat-reply")
                 .withProperty("qqbot.dify.meme-scene-api-key", "test-meme-key")
                 .withProperty("qqbot.dify.passive-chat-api-key", "test-passive-key")
-                .withProperty("qqbot.dify.active-chat-api-key", "test-active-key");
+                .withProperty("qqbot.dify.active-chat-api-key", "test-active-key")
+                .withProperty("qqbot.knowledge.context.max-items", "3")
+                .withProperty("qqbot.knowledge.context.max-length", "600")
+                .withProperty("qqbot.knowledge.context.min-score", "0.42")
+                .withProperty("qqbot.knowledge.context.member-profile-limit", "1");
 
         Object properties = Binder.get(env).bind("qqbot", Bindable.of(cls("com.yh.qqbot.config.properties.QqBotProperties"))).get();
         Object identity = invoke(properties, "getIdentity");
@@ -42,6 +46,8 @@ class QqBotPropertiesBindingReflectionTest {
         Object ws = invoke(onebot, "getWs");
         Object activeChat = invoke(properties, "getActiveChat");
         Object dify = invoke(properties, "getDify");
+        Object knowledge = invoke(properties, "getKnowledge");
+        Object context = invoke(knowledge, "getContext");
 
         assertThat(invoke(identity, "getDisplayName")).isEqualTo("小黄");
         assertThat((java.util.List<Object>) invoke(identity, "getAliases")).containsExactly("小黄", "黄哥");
@@ -64,6 +70,10 @@ class QqBotPropertiesBindingReflectionTest {
         assertThat(invoke(dify, "getMemeSceneApiKey")).isEqualTo("test-meme-key");
         assertThat(invoke(dify, "getPassiveChatApiKey")).isEqualTo("test-passive-key");
         assertThat(invoke(dify, "getActiveChatApiKey")).isEqualTo("test-active-key");
+        assertThat(invoke(context, "getMaxItems")).isEqualTo(3);
+        assertThat(invoke(context, "getMaxLength")).isEqualTo(600);
+        assertThat(invoke(context, "getMinScore")).isEqualTo(0.42);
+        assertThat(invoke(context, "getMemberProfileLimit")).isEqualTo(1);
     }
 
     private static Object invoke(Object target, String methodName) throws Exception {

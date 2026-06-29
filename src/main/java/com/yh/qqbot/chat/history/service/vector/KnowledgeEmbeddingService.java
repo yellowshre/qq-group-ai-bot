@@ -270,14 +270,18 @@ public class KnowledgeEmbeddingService {
     private SearchPayload resolveSearchPayload(ChatKnowledgeEmbeddingEntity embedding) {
         if (KnowledgeEmbeddingTargetType.GROUP_KNOWLEDGE.name().equals(embedding.getTargetType())) {
             ChatGroupKnowledgeEntity knowledge = groupKnowledgeMapper.selectById(embedding.getTargetId());
-            if (knowledge == null || !Boolean.TRUE.equals(knowledge.getEnabled())) {
+            if (knowledge == null
+                    || !Boolean.TRUE.equals(knowledge.getEnabled())
+                    || !FormalKnowledgeStatus.ACTIVE.name().equals(knowledge.getStatus())) {
                 return null;
             }
             return new SearchPayload(knowledge.getTitle(), knowledge.getContent());
         }
         if (KnowledgeEmbeddingTargetType.MEMBER_PROFILE.name().equals(embedding.getTargetType())) {
             ChatMemberProfileEntity profile = memberProfileMapper.selectById(embedding.getTargetId());
-            if (profile == null || !Boolean.TRUE.equals(profile.getEnabled())) {
+            if (profile == null
+                    || !Boolean.TRUE.equals(profile.getEnabled())
+                    || !FormalKnowledgeStatus.ACTIVE.name().equals(profile.getStatus())) {
                 return null;
             }
             return new SearchPayload(displayName(profile), profile.getProfileText());

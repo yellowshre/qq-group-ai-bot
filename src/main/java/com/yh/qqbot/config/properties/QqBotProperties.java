@@ -698,6 +698,8 @@ public class QqBotProperties {
     public static class Knowledge {
         @NotNull
         private Embedding embedding = new Embedding();
+        @NotNull
+        private Context context = new Context();
 
         public Embedding getEmbedding() {
             return embedding;
@@ -705,6 +707,14 @@ public class QqBotProperties {
 
         public void setEmbedding(Embedding embedding) {
             this.embedding = embedding == null ? new Embedding() : embedding;
+        }
+
+        public Context getContext() {
+            return context;
+        }
+
+        public void setContext(Context context) {
+            this.context = context == null ? new Context() : context;
         }
     }
 
@@ -763,6 +773,68 @@ public class QqBotProperties {
 
         public void setTimeoutSeconds(int timeoutSeconds) {
             this.timeoutSeconds = timeoutSeconds;
+        }
+    }
+
+    public static class Context {
+        @Min(1)
+        private int maxItems = 5;
+        @Min(1)
+        private int maxLength = 800;
+        private double minScore = 0.3;
+        @Min(0)
+        private int memberProfileLimit = 1;
+        @Min(1)
+        private int maxSearchCandidates = 20;
+        @Min(1)
+        private int maxItemContentLength = 160;
+
+        public int getMaxItems() {
+            return maxItems;
+        }
+
+        public void setMaxItems(int maxItems) {
+            this.maxItems = maxItems;
+        }
+
+        public int getMaxLength() {
+            return maxLength;
+        }
+
+        public void setMaxLength(int maxLength) {
+            this.maxLength = maxLength;
+        }
+
+        public double getMinScore() {
+            return minScore;
+        }
+
+        public void setMinScore(double minScore) {
+            this.minScore = minScore;
+        }
+
+        public int getMemberProfileLimit() {
+            return memberProfileLimit;
+        }
+
+        public void setMemberProfileLimit(int memberProfileLimit) {
+            this.memberProfileLimit = memberProfileLimit;
+        }
+
+        public int getMaxSearchCandidates() {
+            return maxSearchCandidates;
+        }
+
+        public void setMaxSearchCandidates(int maxSearchCandidates) {
+            this.maxSearchCandidates = maxSearchCandidates;
+        }
+
+        public int getMaxItemContentLength() {
+            return maxItemContentLength;
+        }
+
+        public void setMaxItemContentLength(int maxItemContentLength) {
+            this.maxItemContentLength = maxItemContentLength;
         }
     }
 
