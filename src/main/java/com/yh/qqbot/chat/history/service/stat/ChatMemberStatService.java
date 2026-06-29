@@ -1,10 +1,12 @@
 package com.yh.qqbot.chat.history.service.stat;
 
 import com.yh.qqbot.chat.history.entity.ChatCleanMessageEntity;
+import com.yh.qqbot.chat.history.entity.ChatMemberStatDailyEntity;
 import com.yh.qqbot.chat.history.entity.ChatMemberStatEntity;
 import com.yh.qqbot.chat.history.entity.ChatMessageMentionEntity;
 import com.yh.qqbot.chat.history.entity.ChatMessageReplyEntity;
 import com.yh.qqbot.chat.history.entity.ChatRawMessageEntity;
+import com.yh.qqbot.chat.history.mapper.ChatMemberStatDailyMapper;
 import com.yh.qqbot.chat.history.mapper.ChatMemberStatMapper;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -20,9 +22,13 @@ import org.springframework.stereotype.Service;
 public class ChatMemberStatService {
 
     private final ChatMemberStatMapper chatMemberStatMapper;
+    private final ChatMemberStatDailyMapper chatMemberStatDailyMapper;
 
-    public ChatMemberStatService(ChatMemberStatMapper chatMemberStatMapper) {
+    public ChatMemberStatService(
+            ChatMemberStatMapper chatMemberStatMapper,
+            ChatMemberStatDailyMapper chatMemberStatDailyMapper) {
         this.chatMemberStatMapper = chatMemberStatMapper;
+        this.chatMemberStatDailyMapper = chatMemberStatDailyMapper;
     }
 
     public long calculateAndSave(
@@ -34,12 +40,20 @@ public class ChatMemberStatService {
             List<ChatMessageReplyEntity> replies,
             List<List<ChatCleanMessageEntity>> sessions) {
         Map<String, MemberAccumulator> members = new HashMap<>();
+        Map<String, MemberAccumulator> dailyMembers = new HashMap<>();
         Map<Long, String> rawIdToMemberKey = new HashMap<>();
+        Map<Long, LocalDate> rawIdToDate = new HashMap<>();
 
         for (ChatRawMessageEntity raw : rawMessages) {
             MemberAccumulator member = member(members, raw.getSenderUid(), raw.getSenderUin(), raw.getSenderName());
             member.rawMessageCount++;
             rawIdToMemberKey.put(raw.getId(), member.key);
+            LocalDate date = statDate(raw);
+            rawIdToDate.put(raw.getId(), date);
+            MemberAccumulator daily = dailyMember(dailyMembers, date, raw.getSenderUid(), raw.getSenderUin(), raw.getSenderName());
+            if (daily != null) {
+                daily.rawMessageCount++;
+            }
         }
 
         for (ChatCleanMessageEntity clean : cleanMessages) {
@@ -48,12 +62,23 @@ public class ChatMemberStatService {
             if (clean.getMessageTime() != null) {
                 member.activeDays.add(clean.getMessageTime().toLocalDate());
             }
+            LocalDate date = statDate(clean);
+            MemberAccumulator daily = dailyMember(dailyMembers, date, clean.getSenderUid(), clean.getSenderUin(), clean.getSenderName());
+            if (daily != null) {
+                daily.messageCount++;
+                daily.activeDays.add(date);
+            }
         }
 
         for (ChatMessageMentionEntity mention : mentions) {
             MemberAccumulator sender = findByUidOrCreate(members, mention.getSenderUid());
             if (sender != null) {
                 sender.mentionCount++;
+            }
+            LocalDate date = rawIdToDate.get(mention.getRawMessageId());
+            MemberAccumulator daily = findDailyByUidOrCreate(dailyMembers, date, mention.getSenderUid());
+            if (daily != null) {
+                daily.mentionCount++;
             }
         }
 
@@ -62,33 +87,59 @@ public class ChatMemberStatService {
         for (ChatMessageReplyEntity reply : replies) {
             String senderKey = rawIdToMemberKey.get(reply.getRawMessageId());
             MemberAccumulator sender = senderKey == null ? null : members.get(senderKey);
+            LocalDate date = rawIdToDate.get(reply.getRawMessageId());
             if (sender != null) {
                 sender.replyCount++;
+                MemberAccumulator daily = dailyMember(dailyMembers, date,
+                        sender.senderUid, sender.senderUin, sender.senderName);
+                if (daily != null) {
+                    daily.replyCount++;
+                }
             }
             MemberAccumulator replied = firstNonNull(
                     byUin.get(reply.getReplySenderUin()),
                     byName.get(reply.getReplySenderName()));
             if (replied != null) {
                 replied.repliedByCount++;
+                MemberAccumulator daily = dailyMember(dailyMembers, date,
+                        replied.senderUid, replied.senderUin, replied.senderName);
+                if (daily != null) {
+                    daily.repliedByCount++;
+                }
             }
         }
 
         for (List<ChatCleanMessageEntity> session : sessions) {
             Set<String> touchedMembers = new HashSet<>();
+            Set<String> touchedDailyMembers = new HashSet<>();
             for (ChatCleanMessageEntity message : session) {
                 MemberAccumulator member = member(members,
                         message.getSenderUid(),
                         message.getSenderUin(),
                         message.getSenderName());
                 touchedMembers.add(member.key);
+                LocalDate date = statDate(message);
+                MemberAccumulator daily = dailyMember(dailyMembers, date,
+                        message.getSenderUid(),
+                        message.getSenderUin(),
+                        message.getSenderName());
+                if (daily != null) {
+                    touchedDailyMembers.add(daily.key);
+                }
             }
             for (String memberKey : touchedMembers) {
                 members.get(memberKey).sessionCount++;
+            }
+            for (String dailyMemberKey : touchedDailyMembers) {
+                dailyMembers.get(dailyMemberKey).sessionCount++;
             }
         }
 
         for (MemberAccumulator member : members.values()) {
             chatMemberStatMapper.insert(member.toEntity(batchId, groupId));
+        }
+        for (MemberAccumulator member : dailyMembers.values()) {
+            chatMemberStatDailyMapper.insert(member.toDailyEntity(batchId, groupId));
         }
         return members.size();
     }
@@ -100,14 +151,49 @@ public class ChatMemberStatService {
         return member(members, uid, null, null);
     }
 
+    private MemberAccumulator findDailyByUidOrCreate(
+            Map<String, MemberAccumulator> members,
+            LocalDate date,
+            String uid) {
+        if (date == null || uid == null || uid.isBlank()) {
+            return null;
+        }
+        return dailyMember(members, date, uid, null, null);
+    }
+
     private MemberAccumulator member(Map<String, MemberAccumulator> members, String uid, String uin, String name) {
         String key = memberKey(uid, uin, name);
-        return members.computeIfAbsent(key, ignored -> new MemberAccumulator(key, uid, uin, name));
+        return members.computeIfAbsent(key, ignored -> new MemberAccumulator(key, null, uid, uin, name));
+    }
+
+    private MemberAccumulator dailyMember(
+            Map<String, MemberAccumulator> members,
+            LocalDate date,
+            String uid,
+            String uin,
+            String name) {
+        if (date == null) {
+            return null;
+        }
+        String key = dailyMemberKey(date, uid, uin, name);
+        return members.computeIfAbsent(key, ignored -> new MemberAccumulator(key, date, uid, uin, name));
     }
 
     private String memberKey(String uid, String uin, String name) {
         String value = firstNonBlank(uid, uin, name);
         return value == null ? "unknown" : value;
+    }
+
+    private String dailyMemberKey(LocalDate date, String uid, String uin, String name) {
+        return date + ":" + memberKey(uid, uin, name);
+    }
+
+    private LocalDate statDate(ChatRawMessageEntity message) {
+        return message == null || message.getMessageTime() == null ? null : message.getMessageTime().toLocalDate();
+    }
+
+    private LocalDate statDate(ChatCleanMessageEntity message) {
+        return message == null || message.getMessageTime() == null ? null : message.getMessageTime().toLocalDate();
     }
 
     private Map<String, MemberAccumulator> byUin(Collection<MemberAccumulator> members) {
@@ -145,6 +231,7 @@ public class ChatMemberStatService {
 
     private static final class MemberAccumulator {
         private final String key;
+        private final LocalDate statDate;
         private final String senderUid;
         private final String senderUin;
         private final String senderName;
@@ -156,8 +243,9 @@ public class ChatMemberStatService {
         private long sessionCount;
         private final Set<LocalDate> activeDays = new HashSet<>();
 
-        private MemberAccumulator(String key, String senderUid, String senderUin, String senderName) {
+        private MemberAccumulator(String key, LocalDate statDate, String senderUid, String senderUin, String senderName) {
             this.key = Objects.requireNonNull(key);
+            this.statDate = statDate;
             this.senderUid = senderUid;
             this.senderUin = senderUin;
             this.senderName = senderName;
@@ -173,6 +261,24 @@ public class ChatMemberStatService {
             entity.setRawMessageCount(rawMessageCount);
             entity.setMessageCount(messageCount);
             entity.setActiveDays(activeDays.size());
+            entity.setMentionCount(mentionCount);
+            entity.setReplyCount(replyCount);
+            entity.setRepliedByCount(repliedByCount);
+            entity.setSessionCount(sessionCount);
+            return entity;
+        }
+
+        private ChatMemberStatDailyEntity toDailyEntity(Long batchId, String groupId) {
+            ChatMemberStatDailyEntity entity = new ChatMemberStatDailyEntity();
+            entity.setBatchId(batchId);
+            entity.setGroupId(groupId);
+            entity.setStatDate(statDate);
+            entity.setSenderUid(senderUid);
+            entity.setSenderUin(senderUin);
+            entity.setSenderName(senderName);
+            entity.setRawMessageCount(rawMessageCount);
+            entity.setMessageCount(messageCount);
+            entity.setActiveDays(activeDays.isEmpty() ? 0 : 1);
             entity.setMentionCount(mentionCount);
             entity.setReplyCount(replyCount);
             entity.setRepliedByCount(repliedByCount);

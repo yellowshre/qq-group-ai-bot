@@ -47,14 +47,17 @@ public class PrivateAdminCommandService {
     private final QqBotProperties properties;
     private final GroupConfigAdminService groupConfigAdminService;
     private final AdminOpLogService adminOpLogService;
+    private final MemberRankCommandService memberRankCommandService;
 
     public PrivateAdminCommandService(
             QqBotProperties properties,
             GroupConfigAdminService groupConfigAdminService,
-            AdminOpLogService adminOpLogService) {
+            AdminOpLogService adminOpLogService,
+            MemberRankCommandService memberRankCommandService) {
         this.properties = properties;
         this.groupConfigAdminService = groupConfigAdminService;
         this.adminOpLogService = adminOpLogService;
+        this.memberRankCommandService = memberRankCommandService;
     }
 
     public CommandHandleResult tryHandle(BotPrivateMessage message) {
@@ -76,6 +79,11 @@ public class PrivateAdminCommandService {
         }
         if (properties.getPrivateAdmin().isLimitToAllowedGroups() && !isAllowedGroup(parsed.groupId())) {
             return handled("GROUP_NOT_ALLOWED", "group not allowed", replies().getGroupNotAllowed());
+        }
+
+        CommandHandleResult rankCommand = memberRankCommandService.tryHandlePrivate(parsed.groupId(), parsed.operation());
+        if (rankCommand != null && rankCommand.handled()) {
+            return rankCommand;
         }
 
         GroupConfigAdminResult result = execute(parsed);

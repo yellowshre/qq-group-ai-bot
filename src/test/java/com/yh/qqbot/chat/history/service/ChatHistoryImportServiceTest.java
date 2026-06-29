@@ -88,8 +88,12 @@ class ChatHistoryImportServiceTest {
                         mapper("com.yh.qqbot.chat.history.mapper.ChatSessionMapper", state),
                         mapper("com.yh.qqbot.chat.history.mapper.ChatSessionMessageMapper", state));
         Object memberStatService = cls("com.yh.qqbot.chat.history.service.stat.ChatMemberStatService")
-                .getConstructor(cls("com.yh.qqbot.chat.history.mapper.ChatMemberStatMapper"))
-                .newInstance(mapper("com.yh.qqbot.chat.history.mapper.ChatMemberStatMapper", state));
+                .getConstructor(
+                        cls("com.yh.qqbot.chat.history.mapper.ChatMemberStatMapper"),
+                        cls("com.yh.qqbot.chat.history.mapper.ChatMemberStatDailyMapper"))
+                .newInstance(
+                        mapper("com.yh.qqbot.chat.history.mapper.ChatMemberStatMapper", state),
+                        mapper("com.yh.qqbot.chat.history.mapper.ChatMemberStatDailyMapper", state));
         return cls("com.yh.qqbot.chat.history.service.ChatHistoryImportService")
                 .getConstructor(
                         cls("com.yh.qqbot.chat.history.mapper.ChatImportBatchMapper"),

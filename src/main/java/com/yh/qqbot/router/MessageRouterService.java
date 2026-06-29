@@ -120,8 +120,7 @@ public class MessageRouterService {
                     || text.startsWith("\u0023\u72b6\u6001")) {
                 CommandHandleResult command = adminCommandService.tryHandle(message, config);
                 if (command.handled()) {
-                    return RouteResult.send(RouteType.COMMAND, command.outboundMessage(), command.operation())
-                            .withAdminCommandHit(true);
+                    return commandResult(command);
                 }
             }
             return RouteResult.silent("group bot switch is off");
@@ -129,8 +128,7 @@ public class MessageRouterService {
 
         CommandHandleResult command = adminCommandService.tryHandle(message, config);
         if (command.handled()) {
-            return RouteResult.send(RouteType.COMMAND, command.outboundMessage(), command.operation())
-                    .withAdminCommandHit(true);
+            return commandResult(command);
         }
 
         Optional<RouteResult> configuredSafetyWordResult = handleConfiguredSafetyWord(message, config);
@@ -460,6 +458,16 @@ public class MessageRouterService {
                 .withPassiveChatHit(true)
                 .withWorkflowType(PASSIVE_DIFY_CHAT)
                 .withSilentReason(reason);
+    }
+
+    private RouteResult commandResult(CommandHandleResult command) {
+        if (command.outboundMessage() == null || command.outboundMessage().isEmpty()) {
+            return RouteResult.silent(command.operation() == null ? "command handled silently" : command.operation())
+                    .withAdminCommandHit(true)
+                    .withSilentReason(command.detail());
+        }
+        return RouteResult.send(RouteType.COMMAND, command.outboundMessage(), command.operation())
+                .withAdminCommandHit(true);
     }
 
     private String passiveChatUnavailableReason() {

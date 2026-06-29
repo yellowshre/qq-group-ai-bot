@@ -47,7 +47,14 @@ class QqBotPropertiesBindingReflectionTest {
                 .withProperty("qqbot.knowledge.context.max-items", "3")
                 .withProperty("qqbot.knowledge.context.max-length", "600")
                 .withProperty("qqbot.knowledge.context.min-score", "0.42")
-                .withProperty("qqbot.knowledge.context.member-profile-limit", "1");
+                .withProperty("qqbot.knowledge.context.member-profile-limit", "1")
+                .withProperty("qqbot.member-rank.enabled", "true")
+                .withProperty("qqbot.member-rank.group-command-enabled", "true")
+                .withProperty("qqbot.member-rank.private-command-enabled", "true")
+                .withProperty("qqbot.member-rank.admin-only", "true")
+                .withProperty("qqbot.member-rank.default-top-n", "6")
+                .withProperty("qqbot.member-rank.max-top-n", "12")
+                .withProperty("qqbot.member-rank.command-prefix", "#rank");
 
         Object properties = Binder.get(env).bind("qqbot", Bindable.of(cls("com.yh.qqbot.config.properties.QqBotProperties"))).get();
         Object identity = invoke(properties, "getIdentity");
@@ -61,6 +68,7 @@ class QqBotPropertiesBindingReflectionTest {
         Object dify = invoke(properties, "getDify");
         Object knowledge = invoke(properties, "getKnowledge");
         Object context = invoke(knowledge, "getContext");
+        Object memberRank = invoke(properties, "getMemberRank");
 
         assertThat(invoke(identity, "getDisplayName")).isEqualTo("小黄");
         assertThat((java.util.List<Object>) invoke(identity, "getAliases")).containsExactly("小黄", "黄哥");
@@ -97,6 +105,13 @@ class QqBotPropertiesBindingReflectionTest {
         assertThat(invoke(context, "getMaxLength")).isEqualTo(600);
         assertThat(invoke(context, "getMinScore")).isEqualTo(0.42);
         assertThat(invoke(context, "getMemberProfileLimit")).isEqualTo(1);
+        assertThat(invoke(memberRank, "isEnabled")).isEqualTo(true);
+        assertThat(invoke(memberRank, "isGroupCommandEnabled")).isEqualTo(true);
+        assertThat(invoke(memberRank, "isPrivateCommandEnabled")).isEqualTo(true);
+        assertThat(invoke(memberRank, "isAdminOnly")).isEqualTo(true);
+        assertThat(invoke(memberRank, "getDefaultTopN")).isEqualTo(6);
+        assertThat(invoke(memberRank, "getMaxTopN")).isEqualTo(12);
+        assertThat(invoke(memberRank, "getCommandPrefix")).isEqualTo("#rank");
     }
 
     private static Object invoke(Object target, String methodName) throws Exception {

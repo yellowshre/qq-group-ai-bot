@@ -143,3 +143,24 @@ CREATE TABLE IF NOT EXISTS chat_member_stat (
     UNIQUE KEY uk_chat_member_stat (batch_id, sender_uid, sender_uin, sender_name),
     KEY idx_chat_member_stat_group (group_id, message_count)
 ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chat_member_stat_daily (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    batch_id BIGINT NOT NULL,
+    group_id VARCHAR(64) NOT NULL,
+    stat_date DATE NOT NULL,
+    sender_uid VARCHAR(128) NULL,
+    sender_uin VARCHAR(64) NULL,
+    sender_name VARCHAR(255) NULL,
+    raw_message_count BIGINT NOT NULL DEFAULT 0,
+    message_count BIGINT NOT NULL DEFAULT 0,
+    active_days INT NOT NULL DEFAULT 0,
+    mention_count BIGINT NOT NULL DEFAULT 0,
+    reply_count BIGINT NOT NULL DEFAULT 0,
+    replied_by_count BIGINT NOT NULL DEFAULT 0,
+    session_count BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_chat_member_stat_daily (batch_id, stat_date, sender_uid, sender_uin, sender_name),
+    KEY idx_chat_member_stat_daily_group_date (group_id, stat_date),
+    KEY idx_chat_member_stat_daily_message (group_id, message_count)
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

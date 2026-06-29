@@ -45,6 +45,8 @@ public class QqBotProperties {
     @NotNull
     private Meme meme = new Meme();
     @NotNull
+    private MemberRank memberRank = new MemberRank();
+    @NotNull
     private Knowledge knowledge = new Knowledge();
     @NotNull
     private Dify dify = new Dify();
@@ -185,6 +187,14 @@ public class QqBotProperties {
 
     public void setMeme(Meme meme) {
         this.meme = meme;
+    }
+
+    public MemberRank getMemberRank() {
+        return memberRank;
+    }
+
+    public void setMemberRank(MemberRank memberRank) {
+        this.memberRank = memberRank == null ? new MemberRank() : memberRank;
     }
 
     public Knowledge getKnowledge() {
@@ -821,6 +831,74 @@ public class QqBotProperties {
 
         public void setBaseDir(String baseDir) {
             this.baseDir = baseDir;
+        }
+    }
+
+    public static class MemberRank {
+        private boolean enabled = false;
+        private boolean groupCommandEnabled = false;
+        private boolean privateCommandEnabled = true;
+        private boolean adminOnly = false;
+        @Min(1)
+        private int defaultTopN = 5;
+        @Min(1)
+        private int maxTopN = 10;
+        private String commandPrefix = "#\u6392\u884c";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isGroupCommandEnabled() {
+            return groupCommandEnabled;
+        }
+
+        public void setGroupCommandEnabled(boolean groupCommandEnabled) {
+            this.groupCommandEnabled = groupCommandEnabled;
+        }
+
+        public boolean isPrivateCommandEnabled() {
+            return privateCommandEnabled;
+        }
+
+        public void setPrivateCommandEnabled(boolean privateCommandEnabled) {
+            this.privateCommandEnabled = privateCommandEnabled;
+        }
+
+        public boolean isAdminOnly() {
+            return adminOnly;
+        }
+
+        public void setAdminOnly(boolean adminOnly) {
+            this.adminOnly = adminOnly;
+        }
+
+        public int getDefaultTopN() {
+            return defaultTopN;
+        }
+
+        public void setDefaultTopN(int defaultTopN) {
+            this.defaultTopN = defaultTopN;
+        }
+
+        public int getMaxTopN() {
+            return maxTopN;
+        }
+
+        public void setMaxTopN(int maxTopN) {
+            this.maxTopN = maxTopN;
+        }
+
+        public String getCommandPrefix() {
+            return commandPrefix;
+        }
+
+        public void setCommandPrefix(String commandPrefix) {
+            this.commandPrefix = commandPrefix;
         }
     }
 

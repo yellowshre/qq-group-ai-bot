@@ -122,8 +122,13 @@ class PrivateAdminCommandServiceTest {
                 .getConstructor(
                         cls("com.yh.qqbot.config.properties.QqBotProperties"),
                         cls("com.yh.qqbot.service.admin.GroupConfigAdminService"),
-                        cls("com.yh.qqbot.service.log.AdminOpLogService"))
-                .newInstance(properties, groupAdminService, adminOpLogService);
+                        cls("com.yh.qqbot.service.log.AdminOpLogService"),
+                        cls("com.yh.qqbot.service.command.MemberRankCommandService"))
+                .newInstance(
+                        properties,
+                        groupAdminService,
+                        adminOpLogService,
+                        mockClass("com.yh.qqbot.service.command.MemberRankCommandService"));
         return new Fixture(service, groupConfigService, adminOpLogService);
     }
 

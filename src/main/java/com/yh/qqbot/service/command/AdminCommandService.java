@@ -34,20 +34,27 @@ public class AdminCommandService {
     private final GroupConfigService groupConfigService;
     private final ChatContextService chatContextService;
     private final AdminOpLogService adminOpLogService;
+    private final MemberRankCommandService memberRankCommandService;
 
     public AdminCommandService(
             QqBotProperties properties,
             GroupConfigService groupConfigService,
             ChatContextService chatContextService,
-            AdminOpLogService adminOpLogService) {
+            AdminOpLogService adminOpLogService,
+            MemberRankCommandService memberRankCommandService) {
         this.properties = properties;
         this.groupConfigService = groupConfigService;
         this.chatContextService = chatContextService;
         this.adminOpLogService = adminOpLogService;
+        this.memberRankCommandService = memberRankCommandService;
     }
 
     public CommandHandleResult tryHandle(BotGroupMessage message, GroupConfigSnapshot config) {
         String text = message.effectiveText();
+        CommandHandleResult rankCommand = memberRankCommandService.tryHandleGroup(message);
+        if (rankCommand != null && rankCommand.handled()) {
+            return rankCommand;
+        }
         if (!text.startsWith("#")) {
             return CommandHandleResult.notCommand();
         }

@@ -119,6 +119,14 @@ qqbot:
   meme:
     cache-preheat-enabled: ${QQBOT_MEME_CACHE_PREHEAT_ENABLED:true}
     base-dir: ${QQBOT_MEME_BASE_DIR:./memes}
+  member-rank:
+    enabled: ${QQBOT_MEMBER_RANK_ENABLED:false}
+    group-command-enabled: ${QQBOT_MEMBER_RANK_GROUP_COMMAND_ENABLED:false}
+    private-command-enabled: ${QQBOT_MEMBER_RANK_PRIVATE_COMMAND_ENABLED:true}
+    admin-only: ${QQBOT_MEMBER_RANK_ADMIN_ONLY:false}
+    default-top-n: ${QQBOT_MEMBER_RANK_DEFAULT_TOP_N:5}
+    max-top-n: ${QQBOT_MEMBER_RANK_MAX_TOP_N:10}
+    command-prefix: "${QQBOT_MEMBER_RANK_COMMAND_PREFIX:#排行}"
   knowledge:
     embedding:
       enabled: ${QQBOT_KNOWLEDGE_EMBEDDING_ENABLED:false}
