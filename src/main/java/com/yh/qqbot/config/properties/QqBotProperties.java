@@ -41,6 +41,8 @@ public class QqBotProperties {
     @NotNull
     private Meme meme = new Meme();
     @NotNull
+    private Knowledge knowledge = new Knowledge();
+    @NotNull
     private Dify dify = new Dify();
     @NotNull
     private Async async = new Async();
@@ -163,6 +165,14 @@ public class QqBotProperties {
 
     public void setMeme(Meme meme) {
         this.meme = meme;
+    }
+
+    public Knowledge getKnowledge() {
+        return knowledge;
+    }
+
+    public void setKnowledge(Knowledge knowledge) {
+        this.knowledge = knowledge == null ? new Knowledge() : knowledge;
     }
 
     public Dify getDify() {
@@ -682,6 +692,77 @@ public class QqBotProperties {
 
         public void setBaseDir(String baseDir) {
             this.baseDir = baseDir;
+        }
+    }
+
+    public static class Knowledge {
+        @NotNull
+        private Embedding embedding = new Embedding();
+
+        public Embedding getEmbedding() {
+            return embedding;
+        }
+
+        public void setEmbedding(Embedding embedding) {
+            this.embedding = embedding == null ? new Embedding() : embedding;
+        }
+    }
+
+    public static class Embedding {
+        private boolean enabled = false;
+        private String provider = "ollama";
+        private String baseUrl = "http://127.0.0.1:11434";
+        private String model = "bge-m3";
+        private String endpointPath = "/api/embed";
+        @Min(1)
+        private int timeoutSeconds = 30;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        public String getEndpointPath() {
+            return endpointPath;
+        }
+
+        public void setEndpointPath(String endpointPath) {
+            this.endpointPath = endpointPath;
+        }
+
+        public int getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(int timeoutSeconds) {
+            this.timeoutSeconds = timeoutSeconds;
         }
     }
 
