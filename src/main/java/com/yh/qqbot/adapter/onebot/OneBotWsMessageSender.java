@@ -43,4 +43,18 @@ public class OneBotWsMessageSender implements QqMessageSender {
         }
         return sent;
     }
+
+    @Override
+    public boolean sendPrivateMessage(String userId, OutboundMessage outboundMessage) {
+        if (outboundMessage == null || outboundMessage.isEmpty()) {
+            return false;
+        }
+        String echo = "qqbot-ws-private-" + UUID.randomUUID();
+        Map<String, Object> action = actionFactory.sendPrivateMessage(userId, outboundMessage, echo);
+        boolean sent = webSocketClient.sendAction(action);
+        if (!sent) {
+            log.warn("OneBot WebSocket send_private_msg failed before send. userId={}, echo={}", userId, echo);
+        }
+        return sent;
+    }
 }

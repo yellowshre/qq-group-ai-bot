@@ -24,4 +24,11 @@ public class MockMessageSender implements QqMessageSender {
                 groupId, outboundMessage.text(), outboundMessage.imagePath());
         return true;
     }
+
+    @Override
+    public boolean sendPrivateMessage(String userId, OutboundMessage outboundMessage) {
+        log.info("Mock QQ private send success. userId={}, text={}, imagePath={}",
+                userId, outboundMessage.text(), outboundMessage.imagePath());
+        return true;
+    }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yh.qqbot.config.properties.QqBotProperties;
 import com.yh.qqbot.dto.BotGroupMessage;
+import com.yh.qqbot.dto.BotPrivateMessage;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -24,6 +25,10 @@ public class OneBotWsEventParser {
 
     public Optional<BotGroupMessage> parse(String payload) {
         return parseDetailed(payload).message();
+    }
+
+    public Optional<BotPrivateMessage> parsePrivate(String payload) {
+        return parseDetailed(payload).privateMessage();
     }
 
     public ParseResult parseDetailed(String payload) {
@@ -63,6 +68,9 @@ public class OneBotWsEventParser {
         if (!"message".equals(postType)) {
             return ignored("POST_TYPE_NOT_MESSAGE", root, rawMessage);
         }
+        if ("private".equals(messageType)) {
+            return parsePrivateMessage(root, postType, messageType, userId, rawMessage);
+        }
         if (!"group".equals(messageType)) {
             return ignored("MESSAGE_TYPE_NOT_GROUP", root, rawMessage);
         }
@@ -86,7 +94,7 @@ public class OneBotWsEventParser {
             rawMessage = parts.atBot() && hasText(selfId) ? "@" + selfId + " " + parts.text() : parts.text();
         }
 
-        return ParseResult.routable(new BotGroupMessage(
+        return ParseResult.routableGroup(new BotGroupMessage(
                 groupId,
                 userId,
                 text(root, "message_id"),
@@ -96,6 +104,35 @@ public class OneBotWsEventParser {
                 mentionedBotNickname(plainText),
                 receivedAt(root)
         ), postType, messageType, groupId, userId, rawMessage);
+    }
+
+    private ParseResult parsePrivateMessage(
+            JsonNode root,
+            String postType,
+            String messageType,
+            String userId,
+            String rawMessage) {
+        String selfId = configuredSelfId(root);
+        if (hasText(selfId) && selfId.equals(userId)) {
+            return ignored("SELF_MESSAGE", root, rawMessage);
+        }
+
+        MessageParts parts = messageParts(root.path("message"), selfId);
+        String plainText = hasText(parts.text()) ? parts.text() : rawMessage;
+        if (!hasText(plainText)) {
+            return ignored("TEXT_EMPTY", root, rawMessage);
+        }
+        if (!hasText(rawMessage)) {
+            rawMessage = plainText;
+        }
+
+        return ParseResult.routablePrivate(new BotPrivateMessage(
+                userId,
+                text(root, "message_id"),
+                rawMessage,
+                plainText.strip(),
+                receivedAt(root)
+        ), postType, messageType, "", userId, rawMessage);
     }
 
     private boolean isAllowedGroup(String groupId) {
@@ -226,6 +263,7 @@ public class OneBotWsEventParser {
 
     public record ParseResult(
             Optional<BotGroupMessage> message,
+            Optional<BotPrivateMessage> privateMessage,
             String ignoredReason,
             String postType,
             String messageType,
@@ -234,14 +272,24 @@ public class OneBotWsEventParser {
             String rawMessage
     ) {
 
-        private static ParseResult routable(
+        private static ParseResult routableGroup(
                 BotGroupMessage message,
                 String postType,
                 String messageType,
                 String groupId,
                 String userId,
                 String rawMessage) {
-            return new ParseResult(Optional.of(message), "", postType, messageType, groupId, userId, rawMessage);
+            return new ParseResult(Optional.of(message), Optional.empty(), "", postType, messageType, groupId, userId, rawMessage);
+        }
+
+        private static ParseResult routablePrivate(
+                BotPrivateMessage message,
+                String postType,
+                String messageType,
+                String groupId,
+                String userId,
+                String rawMessage) {
+            return new ParseResult(Optional.empty(), Optional.of(message), "", postType, messageType, groupId, userId, rawMessage);
         }
 
         private static ParseResult ignored(
@@ -251,7 +299,7 @@ public class OneBotWsEventParser {
                 String groupId,
                 String userId,
                 String rawMessage) {
-            return new ParseResult(Optional.empty(), reason, postType, messageType, groupId, userId, rawMessage);
+            return new ParseResult(Optional.empty(), Optional.empty(), reason, postType, messageType, groupId, userId, rawMessage);
         }
     }
 }

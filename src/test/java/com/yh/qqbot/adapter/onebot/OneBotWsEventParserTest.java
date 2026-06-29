@@ -180,6 +180,32 @@ class OneBotWsEventParserTest {
     }
 
     @Test
+    void parsesPrivateTextMessage() {
+        Object parser = parser();
+
+        Optional<?> result = parsePrivate(parser, """
+                {
+                  "time": 1782555054,
+                  "self_id": 1771183256,
+                  "post_type": "message",
+                  "message_type": "private",
+                  "message_id": 200,
+                  "user_id": 885391366,
+                  "message": [
+                    {"type": "text", "data": {"text": "#群 736566774 状态"}}
+                  ],
+                  "raw_message": "#群 736566774 状态"
+                }
+                """);
+
+        assertThat(result).isPresent();
+        Object message = result.get();
+        assertThat(invoke(message, "userId")).isEqualTo("885391366");
+        assertThat(invoke(message, "messageId")).isEqualTo("200");
+        assertThat(invoke(message, "effectiveText")).isEqualTo("#群 736566774 状态");
+    }
+
+    @Test
     void ignoresGroupOutsideWhitelist() {
         Object parser = parser();
 
@@ -247,6 +273,14 @@ class OneBotWsEventParserTest {
     private Optional<?> parse(Object parser, String payload) {
         try {
             return (Optional<?>) parser.getClass().getMethod("parse", String.class).invoke(parser, payload);
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    private Optional<?> parsePrivate(Object parser, String payload) {
+        try {
+            return (Optional<?>) parser.getClass().getMethod("parsePrivate", String.class).invoke(parser, payload);
         } catch (Exception ex) {
             throw new IllegalStateException(ex);
         }

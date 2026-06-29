@@ -68,6 +68,35 @@ public class OneBotHttpMessageSender implements QqMessageSender {
         }
     }
 
+    @Override
+    public boolean sendPrivateMessage(String userId, OutboundMessage outboundMessage) {
+        if (properties.getOnebot().isDryRun()) {
+            log.info("OneBot dry-run private send. userId={}, text={}, imagePath={}",
+                    userId, outboundMessage.text(), outboundMessage.imagePath());
+            return true;
+        }
+
+        try {
+            Map<String, Object> body = Map.of(
+                    "user_id", userId,
+                    "message", messageSegments(outboundMessage),
+                    "auto_escape", false
+            );
+            RestClient.RequestBodySpec spec = restClient.post()
+                    .uri("/send_private_msg")
+                    .contentType(MediaType.APPLICATION_JSON);
+            String token = properties.getOnebot().getAccessToken();
+            if (token != null && !token.isBlank()) {
+                spec.header("Authorization", "Bearer " + token);
+            }
+            spec.body(body).retrieve().toBodilessEntity();
+            return true;
+        } catch (Exception ex) {
+            log.warn("OneBot send_private_msg failed. userId={}", userId, ex);
+            return false;
+        }
+    }
+
     private List<Map<String, Object>> messageSegments(OutboundMessage outboundMessage) {
         List<Map<String, Object>> segments = new ArrayList<>();
         if (outboundMessage.text() != null && !outboundMessage.text().isBlank()) {

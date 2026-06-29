@@ -49,6 +49,19 @@ qqbot:
       - "#开启主动插话"
       - "#可以说话了"
       - "小黄说话"
+  command-aliases:
+    active-chat-off-words: "${QQBOT_CMD_ACTIVE_CHAT_OFF_WORDS:}"
+    active-chat-on-words: "${QQBOT_CMD_ACTIVE_CHAT_ON_WORDS:}"
+  private-admin:
+    enabled: ${QQBOT_PRIVATE_ADMIN_COMMAND_ENABLED:false}
+    limit-to-allowed-groups: ${QQBOT_PRIVATE_ADMIN_LIMIT_TO_ALLOWED_GROUPS:true}
+    command-prefix: "${QQBOT_PRIVATE_ADMIN_COMMAND_PREFIX:#}"
+    replies:
+      disabled: "${QQBOT_ADMIN_REPLY_PRIVATE_DISABLED:私聊控制功能当前未开启。}"
+      group-not-allowed: "${QQBOT_ADMIN_REPLY_GROUP_NOT_ALLOWED:这个群不在允许控制范围内。}"
+      unknown-command: "${QQBOT_ADMIN_REPLY_UNKNOWN_COMMAND:没看懂这个控制指令。}"
+      success: "${QQBOT_ADMIN_REPLY_SUCCESS:已更新群配置。}"
+      status-prefix: "${QQBOT_ADMIN_REPLY_STATUS_PREFIX:当前群配置：}"
 #  passive-chat:
 #    trigger-words:
 #      - "小黄"

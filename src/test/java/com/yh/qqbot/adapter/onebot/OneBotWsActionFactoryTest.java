@@ -49,6 +49,25 @@ class OneBotWsActionFactoryTest {
     }
 
     @Test
+    void buildsTextSendPrivateMessageAction() throws Exception {
+        Object factory = factory();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> action = (Map<String, Object>) factory.getClass()
+                .getMethod("sendPrivateMessage", String.class, cls("com.yh.qqbot.dto.OutboundMessage"), String.class)
+                .invoke(factory, "885391366", outboundText("admin ok"), "test-private-001");
+
+        assertThat(action.get("action")).isEqualTo("send_private_msg");
+        assertThat(action.get("echo")).isEqualTo("test-private-001");
+        Map<?, ?> params = (Map<?, ?>) action.get("params");
+        assertThat(params.get("user_id")).isEqualTo("885391366");
+        List<?> message = (List<?>) params.get("message");
+        assertThat(message).hasSize(1);
+        Map<?, ?> segment = (Map<?, ?>) message.get(0);
+        assertThat(segment.get("type")).isEqualTo("text");
+        assertThat(((Map<?, ?>) segment.get("data")).get("text")).isEqualTo("admin ok");
+    }
+
+    @Test
     void keepsExistingUrlOrFileImageReference() throws Exception {
         Object factory = factory();
 

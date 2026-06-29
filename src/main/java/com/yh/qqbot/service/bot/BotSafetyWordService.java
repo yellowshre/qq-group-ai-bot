@@ -16,11 +16,11 @@ public class BotSafetyWordService {
 
     public SafetyWordMatchResult match(String rawMessage) {
         boolean adminOnly = properties.getSafety().isAdminOnly();
-        String offWord = firstMatched(rawMessage, properties.getSafety().getActiveChatOffWords());
+        String offWord = firstMatched(rawMessage, configuredActiveChatOffWords());
         if (offWord != null) {
             return new SafetyWordMatchResult(true, SafetyWordMatchResult.ACTIVE_CHAT_OFF, offWord, adminOnly);
         }
-        String onWord = firstMatched(rawMessage, properties.getSafety().getActiveChatOnWords());
+        String onWord = firstMatched(rawMessage, configuredActiveChatOnWords());
         if (onWord != null) {
             return new SafetyWordMatchResult(true, SafetyWordMatchResult.ACTIVE_CHAT_ON, onWord, adminOnly);
         }
@@ -46,6 +46,28 @@ public class BotSafetyWordService {
             }
         }
         return null;
+    }
+
+    private List<String> configuredActiveChatOffWords() {
+        List<String> aliases = properties.getCommandAliases().getActiveChatOffWords();
+        return hasAnyText(aliases) ? aliases : properties.getSafety().getActiveChatOffWords();
+    }
+
+    private List<String> configuredActiveChatOnWords() {
+        List<String> aliases = properties.getCommandAliases().getActiveChatOnWords();
+        return hasAnyText(aliases) ? aliases : properties.getSafety().getActiveChatOnWords();
+    }
+
+    private boolean hasAnyText(List<String> words) {
+        if (words == null || words.isEmpty()) {
+            return false;
+        }
+        for (String word : words) {
+            if (hasText(word)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean hasText(String value) {

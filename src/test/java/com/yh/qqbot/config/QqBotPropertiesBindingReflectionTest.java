@@ -17,6 +17,16 @@ class QqBotPropertiesBindingReflectionTest {
                 .withProperty("qqbot.identity.aliases[1]", "黄哥")
                 .withProperty("qqbot.safety.active-chat-off-words[0]", "小黄闭嘴")
                 .withProperty("qqbot.safety.active-chat-on-words[0]", "小黄说话")
+                .withProperty("qqbot.command-aliases.active-chat-off-words", "#off,mayu quiet")
+                .withProperty("qqbot.command-aliases.active-chat-on-words", "#on,mayu talk")
+                .withProperty("qqbot.private-admin.enabled", "true")
+                .withProperty("qqbot.private-admin.limit-to-allowed-groups", "true")
+                .withProperty("qqbot.private-admin.command-prefix", "#")
+                .withProperty("qqbot.private-admin.replies.disabled", "private disabled")
+                .withProperty("qqbot.private-admin.replies.group-not-allowed", "group not allowed")
+                .withProperty("qqbot.private-admin.replies.unknown-command", "unknown")
+                .withProperty("qqbot.private-admin.replies.success", "success")
+                .withProperty("qqbot.private-admin.replies.status-prefix", "status")
                 .withProperty("qqbot.onebot.self-id", "1771183256")
                 .withProperty("qqbot.onebot.allowed-group-ids[0]", "736566774")
                 .withProperty("qqbot.onebot.ws.enabled", "true")
@@ -42,6 +52,9 @@ class QqBotPropertiesBindingReflectionTest {
         Object properties = Binder.get(env).bind("qqbot", Bindable.of(cls("com.yh.qqbot.config.properties.QqBotProperties"))).get();
         Object identity = invoke(properties, "getIdentity");
         Object safety = invoke(properties, "getSafety");
+        Object commandAliases = invoke(properties, "getCommandAliases");
+        Object privateAdmin = invoke(properties, "getPrivateAdmin");
+        Object replies = invoke(privateAdmin, "getReplies");
         Object onebot = invoke(properties, "getOnebot");
         Object ws = invoke(onebot, "getWs");
         Object activeChat = invoke(properties, "getActiveChat");
@@ -53,6 +66,16 @@ class QqBotPropertiesBindingReflectionTest {
         assertThat((java.util.List<Object>) invoke(identity, "getAliases")).containsExactly("小黄", "黄哥");
         assertThat((java.util.List<Object>) invoke(safety, "getActiveChatOffWords")).containsExactly("小黄闭嘴");
         assertThat((java.util.List<Object>) invoke(safety, "getActiveChatOnWords")).containsExactly("小黄说话");
+        assertThat((java.util.List<Object>) invoke(commandAliases, "getActiveChatOffWords")).containsExactly("#off", "mayu quiet");
+        assertThat((java.util.List<Object>) invoke(commandAliases, "getActiveChatOnWords")).containsExactly("#on", "mayu talk");
+        assertThat(invoke(privateAdmin, "isEnabled")).isEqualTo(true);
+        assertThat(invoke(privateAdmin, "isLimitToAllowedGroups")).isEqualTo(true);
+        assertThat(invoke(privateAdmin, "getCommandPrefix")).isEqualTo("#");
+        assertThat(invoke(replies, "getDisabled")).isEqualTo("private disabled");
+        assertThat(invoke(replies, "getGroupNotAllowed")).isEqualTo("group not allowed");
+        assertThat(invoke(replies, "getUnknownCommand")).isEqualTo("unknown");
+        assertThat(invoke(replies, "getSuccess")).isEqualTo("success");
+        assertThat(invoke(replies, "getStatusPrefix")).isEqualTo("status");
         assertThat(invoke(onebot, "getSelfId")).isEqualTo("1771183256");
         assertThat((java.util.List<Object>) invoke(onebot, "getAllowedGroupIds")).containsExactly("736566774");
         assertThat(invoke(ws, "isEnabled")).isEqualTo(true);

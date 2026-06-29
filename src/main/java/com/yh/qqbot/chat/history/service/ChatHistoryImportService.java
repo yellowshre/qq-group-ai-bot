@@ -34,7 +34,9 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HexFormat;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -103,10 +105,21 @@ public class ChatHistoryImportService {
             List<ChatCleanMessageEntity> cleanMessages = new ArrayList<>();
             List<ChatMessageMentionEntity> mentions = new ArrayList<>();
             List<ChatMessageReplyEntity> replies = new ArrayList<>();
+            Set<String> seenMessageIds = new LinkedHashSet<>();
+            long skippedDuplicateMessages = 0L;
 
             int index = 0;
             for (ChatHistoryParsedMessage parsed : exportData.messages()) {
-                ChatRawMessageEntity raw = toRawEntity(batch, groupId, parsed, ++index);
+                index++;
+                String messageId = stableMessageId(groupId, parsed);
+                if (!seenMessageIds.add(messageId)) {
+                    skippedDuplicateMessages++;
+                    log.warn("Skip duplicate chat history message in same batch. batchId={}, groupId={}, messageId={}, rowIndex={}, skippedDuplicates={}",
+                            batch.getId(), groupId, messageId, index, skippedDuplicateMessages);
+                    continue;
+                }
+
+                ChatRawMessageEntity raw = toRawEntity(batch, groupId, parsed, messageId);
                 rawMessageMapper.insert(raw);
                 rawMessages.add(raw);
 
@@ -144,14 +157,15 @@ public class ChatHistoryImportService {
             batch.setStatus(STATUS_SUCCESS);
             batch.setUpdatedAt(LocalDateTime.now());
             batchMapper.updateById(batch);
-            log.info("Chat history import completed. batchId={}, groupId={}, status={}, raw={}, clean={}, sessions={}",
-                    batch.getId(), groupId, batch.getStatus(), rawMessages.size(), cleanMessages.size(), sessionResult.sessionCount());
+            log.info("Chat history import completed. batchId={}, groupId={}, status={}, raw={}, clean={}, sessions={}, skippedDuplicates={}",
+                    batch.getId(), groupId, batch.getStatus(), rawMessages.size(), cleanMessages.size(),
+                    sessionResult.sessionCount(), skippedDuplicateMessages);
             return response(batch, false);
         } catch (Exception ex) {
             markFailed(batch, ex);
-            log.warn("Chat history import failed. batchId={}, groupId={}, status={}",
-                    batch.getId(), groupId, STATUS_FAILED);
-            throw new IllegalStateException("chat history import failed");
+            log.warn("Chat history import failed. batchId={}, groupId={}, status={}, error={}",
+                    batch.getId(), groupId, STATUS_FAILED, shortErrorMessage(ex), ex);
+            throw new IllegalStateException("chat history import failed", ex);
         }
     }
 
@@ -189,11 +203,11 @@ public class ChatHistoryImportService {
             ChatImportBatchEntity batch,
             String groupId,
             ChatHistoryParsedMessage parsed,
-            int index) throws JsonProcessingException {
+            String messageId) throws JsonProcessingException {
         ChatRawMessageEntity raw = new ChatRawMessageEntity();
         raw.setBatchId(batch.getId());
         raw.setGroupId(groupId);
-        raw.setMessageId(blankToDefault(parsed.messageId(), "row-" + index));
+        raw.setMessageId(messageId);
         raw.setSeq(parsed.seq());
         raw.setMessageTime(parsed.messageTime());
         raw.setSenderUid(parsed.senderUid());
@@ -220,7 +234,7 @@ public class ChatHistoryImportService {
 
     private void markFailed(ChatImportBatchEntity batch, Exception ex) {
         batch.setStatus(STATUS_FAILED);
-        batch.setErrorMessage(ex.getClass().getSimpleName());
+        batch.setErrorMessage(limit(shortErrorMessage(ex), 1000));
         batch.setUpdatedAt(LocalDateTime.now());
         batchMapper.updateById(batch);
     }
@@ -264,7 +278,45 @@ public class ChatHistoryImportService {
         return value == null ? 0L : value;
     }
 
-    private String blankToDefault(String value, String defaultValue) {
-        return value == null || value.isBlank() ? defaultValue : value;
+    private String stableMessageId(String groupId, ChatHistoryParsedMessage parsed) {
+        if (parsed.messageId() != null && !parsed.messageId().isBlank()) {
+            return parsed.messageId().strip();
+        }
+        String fingerprint = String.join("|",
+                nullToEmpty(groupId),
+                nullToEmpty(parsed.seq()),
+                nullToEmpty(parsed.messageTime()),
+                nullToEmpty(parsed.senderUid()),
+                nullToEmpty(parsed.senderUin()),
+                nullToEmpty(parsed.senderName()),
+                nullToEmpty(parsed.messageType()),
+                nullToEmpty(parsed.rawText()),
+                parsed.rawJson() == null ? "" : parsed.rawJson().toString());
+        return "fallback-" + sha256Text(fingerprint).substring(0, 32);
+    }
+
+    private String sha256Text(String text) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("failed to hash chat history message", ex);
+        }
+    }
+
+    private String shortErrorMessage(Exception ex) {
+        String message = ex.getMessage();
+        return ex.getClass().getSimpleName() + (message == null || message.isBlank() ? "" : ": " + message);
+    }
+
+    private String limit(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
+    }
+
+    private String nullToEmpty(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }

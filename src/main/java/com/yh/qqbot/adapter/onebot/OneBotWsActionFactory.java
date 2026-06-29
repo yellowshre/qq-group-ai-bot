@@ -26,6 +26,17 @@ public class OneBotWsActionFactory {
         );
     }
 
+    public Map<String, Object> sendPrivateMessage(String userId, OutboundMessage outboundMessage, String echo) {
+        return Map.of(
+                "action", "send_private_msg",
+                "params", Map.of(
+                        "user_id", userId,
+                        "message", messageSegments(outboundMessage)
+                ),
+                "echo", echo
+        );
+    }
+
     public List<Map<String, Object>> messageSegments(OutboundMessage outboundMessage) {
         List<Map<String, Object>> segments = new ArrayList<>();
         if (outboundMessage == null) {

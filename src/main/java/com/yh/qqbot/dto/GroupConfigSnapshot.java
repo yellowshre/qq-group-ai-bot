@@ -116,6 +116,12 @@ public record GroupConfigSnapshot(
                 enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
     }
 
+    public GroupConfigSnapshot withPersona(String value) {
+        return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
+                activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, value, memoryMode,
+                enableKnowledgeContext, enableMemeKnowledge, enablePassiveChatKnowledge, enableActiveChatKnowledge);
+    }
+
     public GroupConfigSnapshot withMemoryMode(MemoryMode value) {
         return copy(botOn, enableChat, enableMeme, enablePassiveChat, enableAutoJoin,
                 activeCooldownSeconds, activeMaxPerHour, activeMaxPerDay, safeWord, safeWordReply, persona, value,

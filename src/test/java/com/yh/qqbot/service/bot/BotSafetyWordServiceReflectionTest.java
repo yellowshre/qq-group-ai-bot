@@ -33,6 +33,21 @@ class BotSafetyWordServiceReflectionTest {
     }
 
     @Test
+    void commandAliasesOverrideSafetyWordsWhenConfigured() throws Exception {
+        Object properties = properties();
+        Object commandAliases = invoke(properties, "getCommandAliases");
+        invoke(commandAliases, "setActiveChatOffWords", new Class<?>[]{List.class}, List.of("mayu quiet"));
+        invoke(commandAliases, "setActiveChatOnWords", new Class<?>[]{List.class}, List.of("mayu talk"));
+        Object service = newService(properties);
+
+        Object offResult = invoke(service, "match", new Class<?>[]{String.class}, "please mayu quiet");
+        Object onResult = invoke(service, "match", new Class<?>[]{String.class}, "please mayu talk");
+
+        assertThat(invoke(offResult, "action")).isEqualTo("ACTIVE_CHAT_OFF");
+        assertThat(invoke(onResult, "action")).isEqualTo("ACTIVE_CHAT_ON");
+    }
+
+    @Test
     void normalChatDoesNotMatchSafetyWords() throws Exception {
         Object result = invoke(service(), "match", new Class<?>[]{String.class}, "普通聊天内容");
 

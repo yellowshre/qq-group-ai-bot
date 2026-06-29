@@ -25,6 +25,10 @@ public class QqBotProperties {
     @NotNull
     private Safety safety = new Safety();
     @NotNull
+    private CommandAliases commandAliases = new CommandAliases();
+    @NotNull
+    private PrivateAdmin privateAdmin = new PrivateAdmin();
+    @NotNull
     private PassiveChat passiveChat = new PassiveChat();
     @NotNull
     private ActiveChat activeChat = new ActiveChat();
@@ -101,6 +105,22 @@ public class QqBotProperties {
 
     public void setSafety(Safety safety) {
         this.safety = safety == null ? new Safety() : safety;
+    }
+
+    public CommandAliases getCommandAliases() {
+        return commandAliases;
+    }
+
+    public void setCommandAliases(CommandAliases commandAliases) {
+        this.commandAliases = commandAliases == null ? new CommandAliases() : commandAliases;
+    }
+
+    public PrivateAdmin getPrivateAdmin() {
+        return privateAdmin;
+    }
+
+    public void setPrivateAdmin(PrivateAdmin privateAdmin) {
+        this.privateAdmin = privateAdmin == null ? new PrivateAdmin() : privateAdmin;
     }
 
     public PassiveChat getPassiveChat() {
@@ -258,6 +278,115 @@ public class QqBotProperties {
 
         public void setActiveChatOnWords(List<String> activeChatOnWords) {
             this.activeChatOnWords = activeChatOnWords == null ? new ArrayList<>() : new ArrayList<>(activeChatOnWords);
+        }
+    }
+
+    public static class CommandAliases {
+        private List<String> activeChatOffWords = new ArrayList<>();
+        private List<String> activeChatOnWords = new ArrayList<>();
+
+        public List<String> getActiveChatOffWords() {
+            return activeChatOffWords;
+        }
+
+        public void setActiveChatOffWords(List<String> activeChatOffWords) {
+            this.activeChatOffWords = activeChatOffWords == null ? new ArrayList<>() : new ArrayList<>(activeChatOffWords);
+        }
+
+        public List<String> getActiveChatOnWords() {
+            return activeChatOnWords;
+        }
+
+        public void setActiveChatOnWords(List<String> activeChatOnWords) {
+            this.activeChatOnWords = activeChatOnWords == null ? new ArrayList<>() : new ArrayList<>(activeChatOnWords);
+        }
+    }
+
+    public static class PrivateAdmin {
+        private boolean enabled = false;
+        private boolean limitToAllowedGroups = true;
+        private String commandPrefix = "#";
+        @NotNull
+        private Replies replies = new Replies();
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isLimitToAllowedGroups() {
+            return limitToAllowedGroups;
+        }
+
+        public void setLimitToAllowedGroups(boolean limitToAllowedGroups) {
+            this.limitToAllowedGroups = limitToAllowedGroups;
+        }
+
+        public String getCommandPrefix() {
+            return commandPrefix;
+        }
+
+        public void setCommandPrefix(String commandPrefix) {
+            this.commandPrefix = commandPrefix;
+        }
+
+        public Replies getReplies() {
+            return replies;
+        }
+
+        public void setReplies(Replies replies) {
+            this.replies = replies == null ? new Replies() : replies;
+        }
+    }
+
+    public static class Replies {
+        private String disabled = "\u79c1\u804a\u63a7\u5236\u529f\u80fd\u5f53\u524d\u672a\u5f00\u542f\u3002";
+        private String groupNotAllowed = "\u8fd9\u4e2a\u7fa4\u4e0d\u5728\u5141\u8bb8\u63a7\u5236\u8303\u56f4\u5185\u3002";
+        private String unknownCommand = "\u6ca1\u770b\u61c2\u8fd9\u4e2a\u63a7\u5236\u6307\u4ee4\u3002";
+        private String success = "\u5df2\u66f4\u65b0\u7fa4\u914d\u7f6e\u3002";
+        private String statusPrefix = "\u5f53\u524d\u7fa4\u914d\u7f6e\uff1a";
+
+        public String getDisabled() {
+            return disabled;
+        }
+
+        public void setDisabled(String disabled) {
+            this.disabled = disabled;
+        }
+
+        public String getGroupNotAllowed() {
+            return groupNotAllowed;
+        }
+
+        public void setGroupNotAllowed(String groupNotAllowed) {
+            this.groupNotAllowed = groupNotAllowed;
+        }
+
+        public String getUnknownCommand() {
+            return unknownCommand;
+        }
+
+        public void setUnknownCommand(String unknownCommand) {
+            this.unknownCommand = unknownCommand;
+        }
+
+        public String getSuccess() {
+            return success;
+        }
+
+        public void setSuccess(String success) {
+            this.success = success;
+        }
+
+        public String getStatusPrefix() {
+            return statusPrefix;
+        }
+
+        public void setStatusPrefix(String statusPrefix) {
+            this.statusPrefix = statusPrefix;
         }
     }
 
