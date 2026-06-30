@@ -466,15 +466,14 @@ cd ..
 - 敏感配置只展示 `configured=true/false`。
 - 群配置、知识审批、成员排行都按独立模块推进，便于中途暂停再继续。
 
-## 后续分步
+## 维护建议
 
-建议继续按这些独立提交推进：
+当前控制台已经覆盖总览、群配置、表情包、知识库、流水线、洞察、排行、模拟、日志、设置和运维手册。后续继续扩展时建议保持现在的节奏：
 
-```text
-feat(admin-api): add group config admin endpoints
-feat(admin-ui): add group config editor
-feat(admin-ui): add knowledge candidate review workspace
-feat(admin-ui): add runtime settings status
-```
+- 后端先补一个小而明确的 dev/local 管理接口。
+- 前端只接入对应页面或局部面板。
+- 构建通过后再做浏览器验收。
+- 涉及敏感信息时只展示 `configured=true/false`、计数或摘要。
+- 不把真实 SnowLuma token、Dify API Key、管理员 QQ 明细或完整聊天原文放进页面。
 
-当前阶段仍推荐开发时用 Vite 独立运行，真实本地验收时用 Spring Boot 托管构建产物。
+开发时仍推荐用 Vite 独立运行；真实本地验收时用 Spring Boot 托管构建产物。
