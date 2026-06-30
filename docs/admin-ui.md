@@ -277,6 +277,17 @@ POST /dev/simulate/group-message
 - 主动插话策略字段，例如 `activePolicyRejectReason`、`cooldownSeconds`、`randomHit`
 - 完整 `RouteResult JSON`
 
+页面内置几个常用模拟用例：
+
+- 表情包 A：普通群消息，验证关键词/语义场景是否命中素材。
+- 被动聊天 B：`atBot=true`，验证被动 Dify 回复链路。
+- 昵称触发 B：`botNicknameMatched=true`，验证不 @ 时的昵称入口。
+- 主动插话 C：普通群聊候选消息，验证主动插话策略、概率、冷却和上限。
+- 管理员状态：`#状态` 指令，验证管理员白名单和群配置摘要。
+- 未命中静默：验证普通消息在 A/C 都未命中时不会刷屏。
+
+也可以点击“重复上次 messageId”再次发送同一个请求，用来验证 Redis 去重返回 `dedupPassed=false`。
+
 这个接口当前只在 `dev` profile 下启用。真实 `local` SnowLuma 联调主要看 `/admin/logs` 和真实群消息；需要在浏览器里模拟时，用 dev profile 启动后端。
 
 ## 开发启动

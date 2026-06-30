@@ -712,6 +712,41 @@ textarea {
   gap: 8px;
 }
 
+.simulation-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.simulation-preset-card {
+  display: grid;
+  gap: 5px;
+  min-height: 78px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.simulation-preset-card:hover {
+  border-color: #c9d8ff;
+  background: var(--accent-soft);
+}
+
+.simulation-preset-card span {
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.simulation-preset-card small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .simulate-actions {
   justify-content: flex-end;
 }
@@ -1037,11 +1072,12 @@ textarea {
 
   .status-grid,
   .panel-grid.two,
-  .rank-form,
-  .knowledge-filter,
-  .log-filter,
-  .knowledge-tool-grid,
-  .context-preview-grid,
+    .rank-form,
+    .knowledge-filter,
+    .log-filter,
+    .simulation-preset-grid,
+    .knowledge-tool-grid,
+    .context-preview-grid,
   .simulate-layout,
   .meme-layout,
   .group-config-layout {
