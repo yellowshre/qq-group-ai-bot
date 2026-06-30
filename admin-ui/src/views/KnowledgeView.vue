@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Refresh, Search } from '@element-plus/icons-vue'
+import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 
 import {
+  createManualKnowledgeCandidate,
   generateCandidates,
   generateEmbeddings,
   importChatHistory,
@@ -11,6 +12,7 @@ import {
   listKnowledgeCandidates,
   listMemberCandidates,
   listMemberProfiles,
+  listReviewLogs,
   previewKnowledgeContext,
   previewRouteKnowledge,
   publishKnowledge,
@@ -31,9 +33,11 @@ import {
   type KnowledgeCandidate,
   type KnowledgeRoutePreviewResponse,
   type KnowledgeSearchResponse,
+  type ManualKnowledgeCandidateResponse,
   type MemberCandidate,
   type MemberProfile,
   type PublishResponse,
+  type ReviewLogItem,
 } from '@/api/knowledge'
 import PageHeader from '@/components/common/PageHeader.vue'
 
@@ -58,11 +62,23 @@ const selectedMembers = ref<MemberCandidate[]>([])
 const importResult = ref<ChatHistoryImportResponse | null>(null)
 const generateResult = ref<GenerateCandidatesResponse | null>(null)
 const publishResult = ref<PublishResponse | null>(null)
+const manualResult = ref<ManualKnowledgeCandidateResponse | null>(null)
 const embeddingResult = ref<EmbeddingGenerateResponse | null>(null)
 const searchResult = ref<KnowledgeSearchResponse | null>(null)
 const contextPreview = ref<KnowledgeContextPreviewResponse | null>(null)
 const routePreview = ref<KnowledgeRoutePreviewResponse | null>(null)
 const difyPreview = ref<DifyContextSimulateResponse | null>(null)
+const reviewLogs = ref<ReviewLogItem[]>([])
+const manualForm = ref({
+  candidateType: 'PHRASE',
+  title: '',
+  content: '',
+  evidenceText: '',
+})
+const reviewLogFilter = ref({
+  targetType: '',
+  targetId: '',
+})
 const contextForm = ref({
   messageText: '',
   senderUid: '',
@@ -87,6 +103,17 @@ const routeOptions = [
 const targetTypeOptions = [
   { label: '正式知识', value: 'GROUP_KNOWLEDGE' },
   { label: '成员画像', value: 'MEMBER_PROFILE' },
+]
+const candidateTypeOptions = [
+  { label: '短语梗 PHRASE', value: 'PHRASE' },
+  { label: '表情包梗 MEME', value: 'MEME' },
+  { label: '回复模式 REPLY_PATTERN', value: 'REPLY_PATTERN' },
+  { label: '话题 TOPIC', value: 'TOPIC' },
+  { label: '表情包场景 MEME_SCENE', value: 'MEME_SCENE' },
+]
+const reviewTargetOptions = [
+  { label: '候选群梗', value: 'KNOWLEDGE_CANDIDATE' },
+  { label: '候选成员画像', value: 'MEMBER_CANDIDATE' },
 ]
 
 const approvedKnowledgeIds = computed(() =>
@@ -164,6 +191,40 @@ async function importHistory() {
   })
 }
 
+async function addManualCandidate() {
+  const groupId = filter.value.groupId.trim()
+  const batchId = Number(filter.value.batchId)
+  const title = manualForm.value.title.trim()
+  const content = manualForm.value.content.trim()
+  if (!groupId || !Number.isInteger(batchId) || batchId <= 0) {
+    ElMessage.warning('手工补录需要填写 groupId 和有效 batchId')
+    return
+  }
+  if (!title || !content) {
+    ElMessage.warning('请填写候选标题和内容')
+    return
+  }
+  await runAction(async () => {
+    manualResult.value = await createManualKnowledgeCandidate({
+      batchId,
+      groupId,
+      candidateType: manualForm.value.candidateType,
+      title,
+      content,
+      evidenceText: manualForm.value.evidenceText.trim() || null,
+      reviewer: reviewer(),
+      reviewComment: comment(),
+    })
+    ElMessage.success(manualResult.value.duplicate ? '已存在相同候选，未重复插入' : '手工候选已创建')
+    if (!manualResult.value.duplicate) {
+      manualForm.value.title = ''
+      manualForm.value.content = ''
+      manualForm.value.evidenceText = ''
+    }
+    await loadAll()
+  })
+}
+
 async function reviewKnowledge(item: KnowledgeCandidate, status: CandidateStatus) {
   await runAction(async () => {
     await reviewKnowledgeCandidate(item.id, status, reviewer(), comment())
@@ -208,6 +269,30 @@ async function batchReviewMembers(status: CandidateStatus) {
     ElMessage.success(`${status === 'APPROVED' ? '通过' : '拒绝'}成员候选 ${ids.length} 条`)
     await loadAll()
   })
+}
+
+async function loadReviewLogs() {
+  await runAction(async () => {
+    const targetId = reviewLogFilter.value.targetId.trim()
+    reviewLogs.value = await listReviewLogs(
+      reviewLogFilter.value.targetType || null,
+      targetId || null,
+    )
+  })
+}
+
+async function inspectKnowledgeReviewLogs(item: KnowledgeCandidate) {
+  reviewLogFilter.value.targetType = 'KNOWLEDGE_CANDIDATE'
+  reviewLogFilter.value.targetId = `${item.id}`
+  activeTab.value = 'manual-review'
+  await loadReviewLogs()
+}
+
+async function inspectMemberReviewLogs(item: MemberCandidate) {
+  reviewLogFilter.value.targetType = 'MEMBER_CANDIDATE'
+  reviewLogFilter.value.targetId = `${item.id}`
+  activeTab.value = 'manual-review'
+  await loadReviewLogs()
 }
 
 async function publishSelectedKnowledge() {
@@ -372,6 +457,20 @@ function jsonText(value: unknown) {
   return JSON.stringify(value ?? {}, null, 2)
 }
 
+async function copyText(value?: string | null) {
+  const text = value?.trim()
+  if (!text) {
+    ElMessage.warning('没有可复制的内容')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('内容已复制')
+  } catch {
+    ElMessage.error('复制失败，可以手动选中内容')
+  }
+}
+
 onMounted(loadAll)
 </script>
 
@@ -509,7 +608,7 @@ onMounted(loadAll)
             </el-table-column>
             <el-table-column prop="hitCount" label="命中" width="84" />
             <el-table-column prop="memberCount" label="成员" width="84" />
-            <el-table-column label="操作" width="170" fixed="right">
+            <el-table-column label="操作" width="230" fixed="right">
               <template #default="{ row }">
                 <div class="table-actions">
                   <el-button size="small" type="success" plain :loading="acting" @click="reviewKnowledge(row, 'APPROVED')">
@@ -517,6 +616,9 @@ onMounted(loadAll)
                   </el-button>
                   <el-button size="small" type="danger" plain :loading="acting" @click="reviewKnowledge(row, 'REJECTED')">
                     拒绝
+                  </el-button>
+                  <el-button size="small" plain :loading="acting" @click="inspectKnowledgeReviewLogs(row)">
+                    日志
                   </el-button>
                 </div>
               </template>
@@ -587,7 +689,7 @@ onMounted(loadAll)
                 <div class="table-snippet">{{ shortText(row.candidateReason, 150) }}</div>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="170" fixed="right">
+            <el-table-column label="操作" width="230" fixed="right">
               <template #default="{ row }">
                 <div class="table-actions">
                   <el-button size="small" type="success" plain :loading="acting" @click="reviewMember(row, 'APPROVED')">
@@ -596,11 +698,114 @@ onMounted(loadAll)
                   <el-button size="small" type="danger" plain :loading="acting" @click="reviewMember(row, 'REJECTED')">
                     拒绝
                   </el-button>
+                  <el-button size="small" plain :loading="acting" @click="inspectMemberReviewLogs(row)">
+                    日志
+                  </el-button>
                 </div>
               </template>
             </el-table-column>
           </el-table>
           <div v-else class="empty-block">暂无候选成员画像，输入 batchId 后可以生成候选。</div>
+        </el-tab-pane>
+
+        <el-tab-pane label="手工补录 / 审批日志" name="manual-review">
+          <div class="knowledge-tool-grid">
+            <section class="tool-box">
+              <h4>手工补录候选群梗</h4>
+              <p>用于补上自动生成漏掉的群梗。新候选仍然是 PENDING，不会直接进入正式知识库。</p>
+              <el-form label-position="top">
+                <div class="number-form-grid">
+                  <el-form-item label="候选类型">
+                    <el-select v-model="manualForm.candidateType">
+                      <el-option
+                        v-for="item in candidateTypeOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="标题">
+                    <el-input v-model="manualForm.title" maxlength="50" show-word-limit placeholder="例如：典" />
+                  </el-form-item>
+                </div>
+                <el-form-item label="内容">
+                  <el-input
+                    v-model="manualForm.content"
+                    type="textarea"
+                    :autosize="{ minRows: 3, maxRows: 6 }"
+                    maxlength="500"
+                    show-word-limit
+                    placeholder="写入要发布到候选知识的内容"
+                  />
+                </el-form-item>
+                <el-form-item label="证据摘要">
+                  <el-input
+                    v-model="manualForm.evidenceText"
+                    type="textarea"
+                    :autosize="{ minRows: 2, maxRows: 5 }"
+                    maxlength="500"
+                    show-word-limit
+                    placeholder="可选：为什么这是群梗，不要粘完整聊天原文"
+                  />
+                </el-form-item>
+              </el-form>
+              <div class="table-actions">
+                <el-button type="primary" :loading="acting" @click="addManualCandidate">创建候选</el-button>
+                <el-button :icon="CopyDocument" @click="copyText(manualForm.content)">复制内容</el-button>
+              </div>
+              <div v-if="manualResult" class="result-strip">
+                <span>candidate #{{ manualResult.candidate.id }}</span>
+                <span>{{ manualResult.duplicate ? 'duplicate' : 'created' }}</span>
+                <span>{{ manualResult.candidate.status }}</span>
+                <span>{{ manualResult.candidate.candidateType }}</span>
+              </div>
+            </section>
+
+            <section class="tool-box">
+              <h4>审批日志查询</h4>
+              <p>查看候选群梗或候选成员画像的状态流转记录。</p>
+              <el-form label-position="top">
+                <div class="number-form-grid">
+                  <el-form-item label="目标类型">
+                    <el-select v-model="reviewLogFilter.targetType" clearable>
+                      <el-option
+                        v-for="item in reviewTargetOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="目标 ID">
+                    <el-input v-model="reviewLogFilter.targetId" placeholder="可选" clearable />
+                  </el-form-item>
+                </div>
+              </el-form>
+              <div class="table-actions">
+                <el-button :icon="Search" type="primary" :loading="acting" @click="loadReviewLogs">查询日志</el-button>
+              </div>
+            </section>
+          </div>
+
+          <el-table v-if="reviewLogs.length" :data="reviewLogs" class="rank-table">
+            <el-table-column prop="id" label="ID" width="78" />
+            <el-table-column prop="createdAt" label="时间" width="172" />
+            <el-table-column prop="targetType" label="目标类型" width="180" />
+            <el-table-column prop="targetId" label="目标 ID" width="100" />
+            <el-table-column label="状态变化" width="160">
+              <template #default="{ row }">
+                {{ row.oldStatus || '-' }} -> {{ row.newStatus || '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="reviewer" label="操作人" width="130" />
+            <el-table-column label="备注" min-width="280">
+              <template #default="{ row }">
+                <div class="table-snippet">{{ shortText(row.reviewComment, 180) }}</div>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-else class="empty-block compact">审批日志会显示在这里。候选表格中的“日志”按钮会自动带入目标类型和 ID。</div>
         </el-tab-pane>
 
         <el-tab-pane label="正式知识" name="formal-knowledge">

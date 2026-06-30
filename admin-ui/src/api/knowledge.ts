@@ -87,6 +87,33 @@ export interface GenerateCandidatesResponse {
   status: string
 }
 
+export interface ManualKnowledgeCandidateRequest {
+  batchId: number
+  groupId: string
+  candidateType: string
+  title: string
+  content: string
+  evidenceText?: string | null
+  reviewer?: string | null
+  reviewComment?: string | null
+}
+
+export interface ManualKnowledgeCandidateResponse {
+  candidate: KnowledgeCandidate
+  duplicate: boolean
+}
+
+export interface ReviewLogItem {
+  id: number
+  targetType: string
+  targetId: number
+  oldStatus?: string | null
+  newStatus?: string | null
+  reviewer?: string | null
+  reviewComment?: string | null
+  createdAt?: string | null
+}
+
 export interface ChatHistoryImportResponse {
   batchId: number
   rawMessages: number
@@ -194,6 +221,20 @@ export function generateCandidates(batchId: number, groupId: string) {
     batchId,
     groupId,
   })
+}
+
+export function createManualKnowledgeCandidate(request: ManualKnowledgeCandidateRequest) {
+  return apiPost<ManualKnowledgeCandidateResponse>('/dev/chat-history/candidates/manual', request)
+}
+
+export function listReviewLogs(targetType?: string | null, targetId?: number | string | null) {
+  const params = new URLSearchParams()
+  if (targetType?.trim()) params.set('targetType', targetType.trim())
+  if (targetId !== null && targetId !== undefined && `${targetId}`.trim()) {
+    params.set('targetId', `${targetId}`.trim())
+  }
+  const suffix = params.toString()
+  return apiGet<ReviewLogItem[]>(`/dev/chat-history/review-logs${suffix ? `?${suffix}` : ''}`)
 }
 
 export function importChatHistory(groupId: string, filePath: string) {

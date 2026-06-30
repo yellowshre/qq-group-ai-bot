@@ -145,6 +145,14 @@ confidence = 1.0
 
 同一 `batchId + groupId + candidateType + content` 已存在 `PENDING` 或 `APPROVED` 时，不重复插入，会返回已有记录并标记 `duplicate=true`。
 
+前端入口：
+
+```text
+/admin/knowledge -> 手工补录 / 审批日志
+```
+
+页面会复用顶部的 `groupId`、`batchId`、操作人和备注。手工补录成功后仍需要在候选群梗表里审核通过，再发布到正式知识库。
+
 ## 接口示例
 
 生成候选：

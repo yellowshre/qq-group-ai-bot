@@ -198,7 +198,9 @@ comfort/comfort_001.jpg
 
 - 按 `groupId`、`batchId`、候选状态查询候选群梗和候选成员画像。
 - 使用 `batchId + groupId` 触发候选生成。
+- 手工补录候选群梗，用于补上自动生成漏掉但确认可用的群梗。
 - 对候选执行通过或拒绝，写入现有 review log。
+- 查询候选群梗 / 候选成员画像的审批日志。
 - 选择已通过候选后发布到正式知识库或正式成员画像。
 - 查看当前群的正式知识和正式成员画像。
 - 启用或停用正式知识和正式成员画像，便于灰度撤回。
@@ -213,10 +215,12 @@ comfort/comfort_001.jpg
 ```http
 POST /dev/chat-history/import
 POST /dev/chat-history/candidates/generate
+POST /dev/chat-history/candidates/manual
 GET /dev/chat-history/candidates
 POST /dev/chat-history/candidates/{id}/review
 GET /dev/chat-history/member-candidates
 POST /dev/chat-history/member-candidates/{id}/review
+GET /dev/chat-history/review-logs
 POST /dev/chat-history/knowledge/publish
 POST /dev/chat-history/member-profiles/publish
 GET /dev/chat-history/knowledge
