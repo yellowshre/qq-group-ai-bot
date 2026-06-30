@@ -890,7 +890,7 @@ onMounted(loadAll)
                 <el-checkbox
                   v-for="item in targetTypeOptions"
                   :key="item.value"
-                  :label="item.value"
+                  :value="item.value"
                 >
                   {{ item.label }}
                 </el-checkbox>

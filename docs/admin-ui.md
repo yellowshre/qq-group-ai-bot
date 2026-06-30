@@ -58,6 +58,8 @@ POST /dev/chat-history/knowledge/publish
 POST /dev/chat-history/member-profiles/publish
 GET /dev/chat-history/knowledge
 GET /dev/chat-history/member-profiles
+GET /dev/chat-history/knowledge/publish-logs
+GET /dev/chat-history/knowledge/embeddings
 ```
 
 页面按模块独立接入 API，避免前端改动影响真实 QQ、Dify、OneBot 主链路。
@@ -244,6 +246,8 @@ POST /dev/chat-history/knowledge/publish
 POST /dev/chat-history/member-profiles/publish
 GET /dev/chat-history/knowledge
 GET /dev/chat-history/member-profiles
+GET /dev/chat-history/knowledge/publish-logs
+GET /dev/chat-history/knowledge/embeddings
 POST /dev/chat-history/knowledge/embeddings/generate
 POST /dev/chat-history/knowledge/search
 POST /dev/chat-history/knowledge/context/preview
@@ -263,11 +267,14 @@ POST /dev/chat-history/dify-context/simulate
 - 读取当前筛选条件下 `APPROVED` 候选数量。
 - 发布已审批候选到正式知识库和正式成员画像。
 - 对正式知识 / 成员画像生成 embedding。
+- 查看发布操作记录和 embedding 明细，方便确认发布、启用、停用和向量生成失败原因。
 - 用一条模拟消息预览 A/B/C 链路是否会带 `knowledgeContext`，并查看 Dify inputs 结构。
 
 这个页面不会替代 `/admin/knowledge` 的详细审批表格。推荐流程是：先在流水线页导入和生成候选，再到知识库页逐条或批量审批，审批完成后回到流水线页发布、生成 embedding、验证召回。
 
 流水线页仍然不展示完整聊天原文，不返回 SnowLuma token、Dify API Key 或管理员 QQ 明细。导入文件名建议使用英文、数字、下划线，例如：
+
+发布操作记录来自 `chat_knowledge_publish_log`，只展示动作、目标、操作人和备注。Embedding 明细来自 `chat_knowledge_embedding`，只展示模型、维度、状态和错误摘要；接口不会返回 `embedding_vector` 或 `embedding_text`。
 
 ```text
 data/chat-export/group_251288204_sample_20260628_185926.json

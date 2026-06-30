@@ -3,6 +3,7 @@ package com.yh.qqbot.chat.history.service.vector;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yh.qqbot.chat.history.dto.ChatKnowledgeEmbeddingSummary;
 import com.yh.qqbot.chat.history.dto.FormalKnowledgeStatus;
 import com.yh.qqbot.chat.history.dto.KnowledgeEmbeddingGenerateRequest;
 import com.yh.qqbot.chat.history.dto.KnowledgeEmbeddingGenerateResponse;
@@ -129,6 +130,23 @@ public class KnowledgeEmbeddingService {
         return new KnowledgeSearchResponse(
                 request.query(),
                 rankSearchCandidates(candidates, queryVector, topK(request.topK())));
+    }
+
+    public List<ChatKnowledgeEmbeddingSummary> findEmbeddingSummaries(
+            String groupId,
+            String targetType,
+            String status,
+            Integer limit) {
+        LambdaQueryWrapper<ChatKnowledgeEmbeddingEntity> wrapper = new LambdaQueryWrapper<ChatKnowledgeEmbeddingEntity>()
+                .eq(hasText(groupId), ChatKnowledgeEmbeddingEntity::getGroupId, groupId)
+                .eq(hasText(targetType), ChatKnowledgeEmbeddingEntity::getTargetType, targetType)
+                .eq(hasText(status), ChatKnowledgeEmbeddingEntity::getStatus, status)
+                .orderByDesc(ChatKnowledgeEmbeddingEntity::getUpdatedAt)
+                .orderByDesc(ChatKnowledgeEmbeddingEntity::getId)
+                .last("LIMIT " + clampLimit(limit));
+        return embeddingMapper.selectList(wrapper).stream()
+                .map(ChatKnowledgeEmbeddingSummary::from)
+                .toList();
     }
 
     public List<KnowledgeSearchResult> rankSearchCandidates(
@@ -325,6 +343,13 @@ public class KnowledgeEmbeddingService {
             return 5;
         }
         return Math.min(20, Math.max(1, value));
+    }
+
+    private int clampLimit(Integer limit) {
+        if (limit == null) {
+            return 50;
+        }
+        return Math.max(1, Math.min(200, limit));
     }
 
     private String hash(String text) {

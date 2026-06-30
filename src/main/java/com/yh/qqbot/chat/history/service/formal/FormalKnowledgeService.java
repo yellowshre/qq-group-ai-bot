@@ -2,6 +2,7 @@ package com.yh.qqbot.chat.history.service.formal;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yh.qqbot.chat.history.dto.ChatCandidateStatus;
+import com.yh.qqbot.chat.history.dto.ChatKnowledgePublishLogSummary;
 import com.yh.qqbot.chat.history.dto.FormalKnowledgePublishRequest;
 import com.yh.qqbot.chat.history.dto.FormalKnowledgePublishResponse;
 import com.yh.qqbot.chat.history.dto.FormalKnowledgeStatus;
@@ -138,6 +139,27 @@ public class FormalKnowledgeService {
         return memberProfileMapper.selectList(wrapper);
     }
 
+    public List<ChatKnowledgePublishLogSummary> findPublishLogs(
+            String groupId,
+            String targetType,
+            String action,
+            Integer limit) {
+        LambdaQueryWrapper<ChatKnowledgePublishLogEntity> wrapper = new LambdaQueryWrapper<>();
+        String normalizedTargetType = normalize(targetType);
+        String normalizedAction = normalize(action);
+        if (hasText(groupId)) {
+            applyGroupFilter(wrapper, groupId.strip(), normalizedTargetType);
+        } else if (hasText(normalizedTargetType)) {
+            wrapper.eq(ChatKnowledgePublishLogEntity::getTargetType, normalizedTargetType);
+        }
+        wrapper.eq(hasText(normalizedAction), ChatKnowledgePublishLogEntity::getAction, normalizedAction)
+                .orderByDesc(ChatKnowledgePublishLogEntity::getId)
+                .last("LIMIT " + clampLimit(limit));
+        return publishLogMapper.selectList(wrapper).stream()
+                .map(ChatKnowledgePublishLogSummary::from)
+                .toList();
+    }
+
     @Transactional
     public ChatGroupKnowledgeEntity setKnowledgeEnabled(
             Long id,
@@ -219,6 +241,75 @@ public class FormalKnowledgeService {
         publishLogMapper.insert(log);
     }
 
+    private void applyGroupFilter(
+            LambdaQueryWrapper<ChatKnowledgePublishLogEntity> wrapper,
+            String groupId,
+            String targetType) {
+        List<Long> knowledgeIds = findKnowledgeTargetIds(groupId);
+        List<Long> profileIds = findProfileTargetIds(groupId);
+        if (KnowledgeEmbeddingTargetType.GROUP_KNOWLEDGE.name().equals(targetType)) {
+            wrapper.eq(ChatKnowledgePublishLogEntity::getTargetType, targetType);
+            applyTargetIds(wrapper, knowledgeIds);
+            return;
+        }
+        if (KnowledgeEmbeddingTargetType.MEMBER_PROFILE.name().equals(targetType)) {
+            wrapper.eq(ChatKnowledgePublishLogEntity::getTargetType, targetType);
+            applyTargetIds(wrapper, profileIds);
+            return;
+        }
+        if (hasText(targetType)) {
+            wrapper.eq(ChatKnowledgePublishLogEntity::getTargetType, targetType)
+                    .eq(ChatKnowledgePublishLogEntity::getTargetId, -1L);
+            return;
+        }
+        if (knowledgeIds.isEmpty() && profileIds.isEmpty()) {
+            wrapper.eq(ChatKnowledgePublishLogEntity::getTargetId, -1L);
+            return;
+        }
+        wrapper.and(nested -> {
+            boolean hasKnowledge = !knowledgeIds.isEmpty();
+            if (hasKnowledge) {
+                nested.eq(ChatKnowledgePublishLogEntity::getTargetType,
+                                KnowledgeEmbeddingTargetType.GROUP_KNOWLEDGE.name())
+                        .in(ChatKnowledgePublishLogEntity::getTargetId, knowledgeIds);
+            }
+            if (!profileIds.isEmpty()) {
+                if (hasKnowledge) {
+                    nested.or();
+                }
+                nested.eq(ChatKnowledgePublishLogEntity::getTargetType,
+                                KnowledgeEmbeddingTargetType.MEMBER_PROFILE.name())
+                        .in(ChatKnowledgePublishLogEntity::getTargetId, profileIds);
+            }
+        });
+    }
+
+    private void applyTargetIds(LambdaQueryWrapper<ChatKnowledgePublishLogEntity> wrapper, List<Long> targetIds) {
+        if (targetIds.isEmpty()) {
+            wrapper.eq(ChatKnowledgePublishLogEntity::getTargetId, -1L);
+        } else {
+            wrapper.in(ChatKnowledgePublishLogEntity::getTargetId, targetIds);
+        }
+    }
+
+    private List<Long> findKnowledgeTargetIds(String groupId) {
+        return groupKnowledgeMapper.selectList(new LambdaQueryWrapper<ChatGroupKnowledgeEntity>()
+                        .eq(ChatGroupKnowledgeEntity::getGroupId, groupId)
+                        .select(ChatGroupKnowledgeEntity::getId))
+                .stream()
+                .map(ChatGroupKnowledgeEntity::getId)
+                .toList();
+    }
+
+    private List<Long> findProfileTargetIds(String groupId) {
+        return memberProfileMapper.selectList(new LambdaQueryWrapper<ChatMemberProfileEntity>()
+                        .eq(ChatMemberProfileEntity::getGroupId, groupId)
+                        .select(ChatMemberProfileEntity::getId))
+                .stream()
+                .map(ChatMemberProfileEntity::getId)
+                .toList();
+    }
+
     private void validatePublishRequest(FormalKnowledgePublishRequest request) {
         if (request == null || !hasText(request.groupId())) {
             throw new InvalidChatCandidateRequestException("groupId is required");
@@ -249,5 +340,16 @@ public class FormalKnowledgeService {
 
     private long value(Long value) {
         return value == null ? 0L : value;
+    }
+
+    private String normalize(String value) {
+        return hasText(value) ? value.strip() : null;
+    }
+
+    private int clampLimit(Integer limit) {
+        if (limit == null) {
+            return 50;
+        }
+        return Math.max(1, Math.min(200, limit));
     }
 }

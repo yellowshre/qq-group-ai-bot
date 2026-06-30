@@ -80,6 +80,32 @@ export interface MemberProfile {
   updatedAt?: string | null
 }
 
+export interface KnowledgePublishLog {
+  id: number
+  sourceType?: string | null
+  sourceId?: number | null
+  targetType?: string | null
+  targetId?: number | null
+  action?: string | null
+  operator?: string | null
+  comment?: string | null
+  createdAt?: string | null
+}
+
+export interface KnowledgeEmbeddingRecord {
+  id: number
+  groupId?: string | null
+  targetType?: string | null
+  targetId?: number | null
+  embeddingModel?: string | null
+  embeddingDim?: number | null
+  embeddingHash?: string | null
+  status?: string | null
+  errorMessage?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
 export interface GenerateCandidatesResponse {
   batchId: number
   knowledgeCandidates: number
@@ -332,6 +358,40 @@ export function listFormalKnowledge(groupId?: string, enabled?: boolean | null) 
 
 export function listMemberProfiles(groupId?: string, enabled?: boolean | null) {
   return apiGet<MemberProfile[]>(withQuery('/dev/chat-history/member-profiles', { groupId, enabled }))
+}
+
+export function listKnowledgePublishLogs(query: {
+  groupId?: string | null
+  targetType?: string | null
+  action?: string | null
+  limit?: number | string | null
+}) {
+  const params = new URLSearchParams()
+  if (query.groupId?.trim()) params.set('groupId', query.groupId.trim())
+  if (query.targetType?.trim()) params.set('targetType', query.targetType.trim())
+  if (query.action?.trim()) params.set('action', query.action.trim())
+  if (query.limit !== null && query.limit !== undefined && `${query.limit}`.trim()) {
+    params.set('limit', `${query.limit}`.trim())
+  }
+  const suffix = params.toString()
+  return apiGet<KnowledgePublishLog[]>(`/dev/chat-history/knowledge/publish-logs${suffix ? `?${suffix}` : ''}`)
+}
+
+export function listKnowledgeEmbeddings(query: {
+  groupId?: string | null
+  targetType?: string | null
+  status?: string | null
+  limit?: number | string | null
+}) {
+  const params = new URLSearchParams()
+  if (query.groupId?.trim()) params.set('groupId', query.groupId.trim())
+  if (query.targetType?.trim()) params.set('targetType', query.targetType.trim())
+  if (query.status?.trim()) params.set('status', query.status.trim())
+  if (query.limit !== null && query.limit !== undefined && `${query.limit}`.trim()) {
+    params.set('limit', `${query.limit}`.trim())
+  }
+  const suffix = params.toString()
+  return apiGet<KnowledgeEmbeddingRecord[]>(`/dev/chat-history/knowledge/embeddings${suffix ? `?${suffix}` : ''}`)
 }
 
 export function setKnowledgeEnabled(id: number, enabled: boolean, operator: string, comment?: string) {

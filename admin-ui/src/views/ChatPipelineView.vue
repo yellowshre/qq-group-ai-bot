@@ -8,7 +8,9 @@ import {
   generateEmbeddings,
   importChatHistory,
   listImportBatches,
+  listKnowledgeEmbeddings,
   listKnowledgeCandidates,
+  listKnowledgePublishLogs,
   listMemberCandidates,
   previewRouteKnowledge,
   publishKnowledge,
@@ -20,6 +22,8 @@ import {
   type EmbeddingGenerateResponse,
   type GenerateCandidatesResponse,
   type KnowledgeCandidate,
+  type KnowledgeEmbeddingRecord,
+  type KnowledgePublishLog,
   type KnowledgeRoutePreviewResponse,
   type MemberCandidate,
   type PublishResponse,
@@ -33,6 +37,8 @@ const overview = ref<AdminOverviewResponse | null>(null)
 const importBatches = ref<ChatImportBatchSummary[]>([])
 const approvedKnowledge = ref<KnowledgeCandidate[]>([])
 const approvedMembers = ref<MemberCandidate[]>([])
+const publishLogs = ref<KnowledgePublishLog[]>([])
+const embeddingRecords = ref<KnowledgeEmbeddingRecord[]>([])
 const importResult = ref<ChatHistoryImportResponse | null>(null)
 const generateResult = ref<GenerateCandidatesResponse | null>(null)
 const publishResult = ref<PublishResponse | null>(null)
@@ -54,6 +60,11 @@ const form = ref({
   topK: 5,
   targetTypes: ['GROUP_KNOWLEDGE', 'MEMBER_PROFILE'],
   regenerateEmbedding: false,
+  recordLimit: 50,
+  publishAction: '',
+  publishTargetType: '',
+  embeddingStatus: '',
+  embeddingTargetType: '',
 })
 
 const routeOptions = [
@@ -65,6 +76,19 @@ const routeOptions = [
 const targetTypeOptions = [
   { label: '正式知识', value: 'GROUP_KNOWLEDGE' },
   { label: '成员画像', value: 'MEMBER_PROFILE' },
+]
+
+const publishActionOptions = [
+  { label: '全部动作', value: '' },
+  { label: '发布', value: 'PUBLISH' },
+  { label: '启用', value: 'ENABLE' },
+  { label: '停用', value: 'DISABLE' },
+]
+
+const embeddingStatusOptions = [
+  { label: '全部状态', value: '' },
+  { label: '成功', value: 'SUCCESS' },
+  { label: '失败', value: 'FAILED' },
 ]
 
 const batchStatusOptions = [
@@ -133,7 +157,7 @@ async function refreshPipeline() {
   const groupId = form.value.groupId.trim()
   loading.value = true
   try {
-    const [overviewData, batches, knowledge, members] = await Promise.all([
+    const [overviewData, batches, knowledge, members, logs, embeddings] = await Promise.all([
       getAdminOverview(groupId || undefined),
       listImportBatches(groupId || null, form.value.batchStatus || null, form.value.batchLimit),
       listKnowledgeCandidates({
@@ -146,11 +170,25 @@ async function refreshPipeline() {
         batchId: form.value.batchId.trim() || null,
         status: 'APPROVED',
       }),
+      listKnowledgePublishLogs({
+        groupId: groupId || null,
+        targetType: form.value.publishTargetType || null,
+        action: form.value.publishAction || null,
+        limit: form.value.recordLimit,
+      }),
+      listKnowledgeEmbeddings({
+        groupId: groupId || null,
+        targetType: form.value.embeddingTargetType || null,
+        status: form.value.embeddingStatus || null,
+        limit: form.value.recordLimit,
+      }),
     ])
     overview.value = overviewData
     importBatches.value = batches
     approvedKnowledge.value = knowledge
     approvedMembers.value = members
+    publishLogs.value = logs
+    embeddingRecords.value = embeddings
     if (!form.value.batchId.trim() && overviewData.latestImport?.batchId) {
       form.value.batchId = `${overviewData.latestImport.batchId}`
     }
@@ -349,7 +387,14 @@ function setBatch(batch: ChatImportBatchSummary) {
 function statusType(status?: string | null) {
   if (status === 'SUCCESS') return 'success'
   if (status === 'FAILED') return 'danger'
+  if (status === 'PUBLISH' || status === 'ENABLE') return 'success'
+  if (status === 'DISABLE') return 'warning'
   return 'warning'
+}
+
+function shortText(value?: string | null, max = 120) {
+  if (!value) return '-'
+  return value.length > max ? `${value.slice(0, max)}...` : value
 }
 
 function jsonText(value: unknown) {
@@ -572,7 +617,7 @@ onMounted(refreshPipeline)
           <el-checkbox
             v-for="item in targetTypeOptions"
             :key="item.value"
-            :label="item.value"
+            :value="item.value"
           >
             {{ item.label }}
           </el-checkbox>
@@ -587,6 +632,118 @@ onMounted(refreshPipeline)
           <span>failed {{ embeddingResult.failed }}</span>
           <span>{{ embeddingResult.status }}</span>
         </div>
+      </div>
+    </section>
+
+    <section class="panel-grid two">
+      <div class="panel">
+        <div class="panel-title-row">
+          <div>
+            <h3>发布操作记录</h3>
+            <span class="panel-subtitle">来自 chat_knowledge_publish_log，只展示动作和目标，不展示知识全文。</span>
+          </div>
+        </div>
+        <el-form label-position="top">
+          <div class="number-form-grid">
+            <el-form-item label="目标类型">
+              <el-select v-model="form.publishTargetType" clearable>
+                <el-option
+                  v-for="item in targetTypeOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="动作">
+              <el-select v-model="form.publishAction" clearable>
+                <el-option
+                  v-for="item in publishActionOptions"
+                  :key="item.value || 'ALL'"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="数量">
+              <el-input-number v-model="form.recordLimit" :min="1" :max="200" />
+            </el-form-item>
+          </div>
+        </el-form>
+        <div class="table-actions">
+          <el-button :icon="Search" :loading="loading" @click="refreshPipeline">刷新记录</el-button>
+        </div>
+        <el-table v-if="publishLogs.length" :data="publishLogs" class="rank-table">
+          <el-table-column prop="id" label="ID" width="78" />
+          <el-table-column prop="createdAt" label="时间" width="172" />
+          <el-table-column label="动作" width="92">
+            <template #default="{ row }">
+              <el-tag :type="statusType(row.action)" effect="plain">{{ row.action || '-' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="targetType" label="目标类型" width="150" />
+          <el-table-column prop="targetId" label="目标 ID" width="100" />
+          <el-table-column prop="operator" label="操作人" width="128" />
+          <el-table-column label="备注" min-width="180">
+            <template #default="{ row }">{{ shortText(row.comment, 100) }}</template>
+          </el-table-column>
+        </el-table>
+        <div v-else class="empty-block compact">暂无发布操作记录。</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title-row">
+          <div>
+            <h3>Embedding 明细</h3>
+            <span class="panel-subtitle">来自 chat_knowledge_embedding，不返回 vector 和 embeddingText。</span>
+          </div>
+        </div>
+        <el-form label-position="top">
+          <div class="number-form-grid">
+            <el-form-item label="目标类型">
+              <el-select v-model="form.embeddingTargetType" clearable>
+                <el-option
+                  v-for="item in targetTypeOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-select v-model="form.embeddingStatus" clearable>
+                <el-option
+                  v-for="item in embeddingStatusOptions"
+                  :key="item.value || 'ALL'"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="数量">
+              <el-input-number v-model="form.recordLimit" :min="1" :max="200" />
+            </el-form-item>
+          </div>
+        </el-form>
+        <div class="table-actions">
+          <el-button :icon="Search" :loading="loading" @click="refreshPipeline">刷新记录</el-button>
+        </div>
+        <el-table v-if="embeddingRecords.length" :data="embeddingRecords" class="rank-table">
+          <el-table-column prop="id" label="ID" width="78" />
+          <el-table-column label="状态" width="92">
+            <template #default="{ row }">
+              <el-tag :type="statusType(row.status)" effect="plain">{{ row.status || '-' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="targetType" label="目标类型" width="150" />
+          <el-table-column prop="targetId" label="目标 ID" width="100" />
+          <el-table-column prop="embeddingModel" label="模型" min-width="150" />
+          <el-table-column prop="embeddingDim" label="维度" width="80" />
+          <el-table-column label="错误" min-width="200">
+            <template #default="{ row }">{{ shortText(row.errorMessage, 120) }}</template>
+          </el-table-column>
+        </el-table>
+        <div v-else class="empty-block compact">暂无 embedding 记录。</div>
       </div>
     </section>
 

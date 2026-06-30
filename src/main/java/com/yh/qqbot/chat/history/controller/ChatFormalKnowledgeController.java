@@ -2,6 +2,8 @@ package com.yh.qqbot.chat.history.controller;
 
 import com.yh.qqbot.chat.history.dto.FormalKnowledgePublishRequest;
 import com.yh.qqbot.chat.history.dto.FormalKnowledgePublishResponse;
+import com.yh.qqbot.chat.history.dto.ChatKnowledgeEmbeddingSummary;
+import com.yh.qqbot.chat.history.dto.ChatKnowledgePublishLogSummary;
 import com.yh.qqbot.chat.history.dto.KnowledgeEmbeddingGenerateRequest;
 import com.yh.qqbot.chat.history.dto.KnowledgeEmbeddingGenerateResponse;
 import com.yh.qqbot.chat.history.dto.KnowledgeSearchRequest;
@@ -61,6 +63,24 @@ public class ChatFormalKnowledgeController {
             @RequestParam(required = false) String groupId,
             @RequestParam(required = false) Boolean enabled) {
         return formalKnowledgeService.findMemberProfiles(groupId, enabled);
+    }
+
+    @GetMapping("/knowledge/publish-logs")
+    public List<ChatKnowledgePublishLogSummary> publishLogs(
+            @RequestParam(required = false) String groupId,
+            @RequestParam(required = false) String targetType,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) Integer limit) {
+        return formalKnowledgeService.findPublishLogs(groupId, targetType, action, limit);
+    }
+
+    @GetMapping("/knowledge/embeddings")
+    public List<ChatKnowledgeEmbeddingSummary> embeddings(
+            @RequestParam(required = false) String groupId,
+            @RequestParam(required = false) String targetType,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer limit) {
+        return knowledgeEmbeddingService.findEmbeddingSummaries(groupId, targetType, status, limit);
     }
 
     @PostMapping("/knowledge/{id}/disable")
