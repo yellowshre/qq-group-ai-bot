@@ -507,6 +507,13 @@ textarea {
   margin-bottom: 14px;
 }
 
+.log-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .rank-form .el-form-item {
   margin-bottom: 0;
 }
@@ -541,6 +548,32 @@ textarea {
 
 .rank-result-strip {
   margin-bottom: 14px;
+}
+
+.log-result-strip {
+  margin-bottom: 12px;
+}
+
+.log-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.22fr) minmax(0, 1fr);
+  gap: 8px 14px;
+  padding: 10px 18px;
+}
+
+.log-detail-grid span {
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.log-detail-grid strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 620;
+  line-height: 1.65;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .member-cell {

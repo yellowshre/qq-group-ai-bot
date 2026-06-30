@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Refresh, Search } from '@element-plus/icons-vue'
+import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import {
   listAdminOpLogs,
@@ -31,8 +31,37 @@ const adminFilter = reactive({
   limit: 100,
 })
 
-const responseTypeOptions = ['SILENT', 'MEME_IMAGE', 'PASSIVE_CHAT', 'ACTIVE_CHAT', 'ADMIN_COMMAND']
-const workflowOptions = ['MEME_KEYWORD', 'MEME_DIFY_SCENE', 'PASSIVE_CHAT', 'ACTIVE_CHAT']
+const responseTypeOptions = ['SILENT', 'COMMAND', 'MEME', 'PASSIVE_CHAT', 'ACTIVE_CHAT', 'SAFE_WORD']
+const workflowOptions = ['MEME_KEYWORD', 'MEME_DIFY_SCENE', 'PASSIVE_DIFY_CHAT', 'ACTIVE_DIFY_CHAT']
+
+const triggerStats = computed(() => {
+  const total = triggerLogs.value.length
+  const success = triggerLogs.value.filter((item) => item.success === true).length
+  const failed = triggerLogs.value.filter((item) => item.success === false).length
+  const silent = triggerLogs.value.filter((item) => item.responseType === 'SILENT').length
+  const sent = triggerLogs.value.filter((item) => item.responseType !== 'SILENT').length
+  const durations = triggerLogs.value
+    .map((item) => item.durationMs)
+    .filter((item): item is number => typeof item === 'number')
+  const avgDuration = durations.length
+    ? Math.round(durations.reduce((sum, item) => sum + item, 0) / durations.length)
+    : null
+  return [
+    `已载入 ${total} 条`,
+    `成功 ${success}`,
+    `失败 ${failed}`,
+    `静默 ${silent}`,
+    `有出站 ${sent}`,
+    `平均耗时 ${avgDuration ?? '-'} ms`,
+  ]
+})
+
+const adminStats = computed(() => {
+  const total = adminOps.value.length
+  const groups = new Set(adminOps.value.map((item) => item.groupId).filter(Boolean)).size
+  const operators = new Set(adminOps.value.map((item) => item.operatorUid).filter(Boolean)).size
+  return [`已载入 ${total} 条`, `涉及群 ${groups}`, `操作人 ${operators}`]
+})
 
 async function loadTriggers() {
   loading.value = true
@@ -67,6 +96,94 @@ async function loadCurrent() {
   }
 }
 
+function resetTriggerFilter() {
+  Object.assign(triggerFilter, {
+    groupId: '',
+    userId: '',
+    messageId: '',
+    responseType: '',
+    workflowType: '',
+    success: '',
+    limit: 100,
+  })
+}
+
+function resetAdminFilter() {
+  Object.assign(adminFilter, {
+    groupId: '',
+    operatorUid: '',
+    operation: '',
+    limit: 100,
+  })
+}
+
+async function applyTriggerShortcut(type: 'silent' | 'meme' | 'passive' | 'active' | 'failed') {
+  if (type === 'silent') {
+    triggerFilter.responseType = 'SILENT'
+    triggerFilter.workflowType = ''
+    triggerFilter.success = ''
+  } else if (type === 'meme') {
+    triggerFilter.responseType = 'MEME'
+    triggerFilter.workflowType = ''
+    triggerFilter.success = ''
+  } else if (type === 'passive') {
+    triggerFilter.responseType = 'PASSIVE_CHAT'
+    triggerFilter.workflowType = 'PASSIVE_DIFY_CHAT'
+    triggerFilter.success = ''
+  } else if (type === 'active') {
+    triggerFilter.responseType = 'ACTIVE_CHAT'
+    triggerFilter.workflowType = 'ACTIVE_DIFY_CHAT'
+    triggerFilter.success = ''
+  } else if (type === 'failed') {
+    triggerFilter.responseType = ''
+    triggerFilter.workflowType = ''
+    triggerFilter.success = 'false'
+  }
+  await loadTriggers()
+}
+
+async function copyTrigger(row: TriggerLogItem) {
+  await copyText(
+    [
+      `trigger_log #${row.id}`,
+      `time=${shortText(row.createdAt)}`,
+      `groupId=${row.groupId}`,
+      `userId=${row.userId}`,
+      `messageId=${shortText(row.messageId)}`,
+      `responseType=${row.responseType}`,
+      `workflowType=${shortText(row.workflowType)}`,
+      `success=${display(row.success)}`,
+      `durationMs=${display(row.durationMs)}`,
+      `memeId=${display(row.memeId)}`,
+      `error=${shortText(row.errorMsg)}`,
+    ].join('\n'),
+    '触发日志摘要已复制',
+  )
+}
+
+async function copyAdminOp(row: AdminOpLogItem) {
+  await copyText(
+    [
+      `admin_op_log #${row.id}`,
+      `time=${shortText(row.createdAt)}`,
+      `groupId=${row.groupId}`,
+      `operatorUid=${row.operatorUid}`,
+      `operation=${row.operation}`,
+      `detail=${shortText(row.detail)}`,
+    ].join('\n'),
+    '管理员操作摘要已复制',
+  )
+}
+
+async function copyText(text: string, successMessage: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success(successMessage)
+  } catch {
+    ElMessage.error('复制失败，可以手动选中表格内容')
+  }
+}
+
 function tagType(success?: boolean | null) {
   if (success === true) return 'success'
   if (success === false) return 'danger'
@@ -75,6 +192,12 @@ function tagType(success?: boolean | null) {
 
 function shortText(value?: string | null, empty = '-') {
   return value && value.trim() ? value : empty
+}
+
+function display(value: unknown) {
+  if (value === null || value === undefined || value === '') return '-'
+  if (typeof value === 'boolean') return value ? 'true' : 'false'
+  return String(value)
 }
 
 onMounted(async () => {
@@ -97,6 +220,15 @@ onMounted(async () => {
     <section class="panel">
       <el-tabs v-model="activeTab" class="knowledge-tabs" @tab-change="loadCurrent">
         <el-tab-pane label="触发日志" name="triggers">
+          <div class="log-shortcuts">
+            <el-button size="small" @click="applyTriggerShortcut('silent')">只看静默</el-button>
+            <el-button size="small" @click="applyTriggerShortcut('meme')">表情包 A</el-button>
+            <el-button size="small" @click="applyTriggerShortcut('passive')">被动聊天 B</el-button>
+            <el-button size="small" @click="applyTriggerShortcut('active')">主动插话 C</el-button>
+            <el-button size="small" @click="applyTriggerShortcut('failed')">只看失败</el-button>
+            <el-button size="small" @click="resetTriggerFilter">重置筛选</el-button>
+          </div>
+
           <el-form class="log-filter" :model="triggerFilter" label-position="top">
             <el-form-item label="群号">
               <el-input v-model="triggerFilter.groupId" clearable />
@@ -141,7 +273,27 @@ onMounted(async () => {
             </el-form-item>
           </el-form>
 
+          <div class="result-strip log-result-strip">
+            <span v-for="item in triggerStats" :key="item">{{ item }}</span>
+          </div>
+
           <el-table v-if="triggerLogs.length" :data="triggerLogs" class="rank-table">
+            <el-table-column type="expand" width="42">
+              <template #default="{ row }">
+                <div class="log-detail-grid">
+                  <span>messageId</span>
+                  <strong>{{ shortText(row.messageId) }}</strong>
+                  <span>originalMsg</span>
+                  <strong>{{ shortText(row.originalMsg) }}</strong>
+                  <span>responseText</span>
+                  <strong>{{ shortText(row.responseText, '无回复文本') }}</strong>
+                  <span>errorMsg</span>
+                  <strong>{{ shortText(row.errorMsg) }}</strong>
+                  <span>token / cost</span>
+                  <strong>{{ display(row.tokenUsed) }} / {{ display(row.cost) }}</strong>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="id" label="ID" width="78" />
             <el-table-column prop="createdAt" label="时间" width="172" />
             <el-table-column prop="groupId" label="群" width="118" />
@@ -167,11 +319,20 @@ onMounted(async () => {
                 <div class="table-snippet">{{ shortText(row.errorMsg) }}</div>
               </template>
             </el-table-column>
+            <el-table-column label="操作" width="92" fixed="right">
+              <template #default="{ row }">
+                <el-button :icon="CopyDocument" link type="primary" @click="copyTrigger(row)">复制</el-button>
+              </template>
+            </el-table-column>
           </el-table>
           <div v-else class="empty-block compact">暂无触发日志。</div>
         </el-tab-pane>
 
         <el-tab-pane label="管理员操作" name="admin-ops">
+          <div class="log-shortcuts">
+            <el-button size="small" @click="resetAdminFilter">重置筛选</el-button>
+          </div>
+
           <el-form class="log-filter" :model="adminFilter" label-position="top">
             <el-form-item label="群号">
               <el-input v-model="adminFilter.groupId" clearable />
@@ -190,7 +351,21 @@ onMounted(async () => {
             </el-form-item>
           </el-form>
 
+          <div class="result-strip log-result-strip">
+            <span v-for="item in adminStats" :key="item">{{ item }}</span>
+          </div>
+
           <el-table v-if="adminOps.length" :data="adminOps" class="rank-table">
+            <el-table-column type="expand" width="42">
+              <template #default="{ row }">
+                <div class="log-detail-grid">
+                  <span>operation</span>
+                  <strong>{{ shortText(row.operation) }}</strong>
+                  <span>detail</span>
+                  <strong>{{ shortText(row.detail) }}</strong>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="id" label="ID" width="78" />
             <el-table-column prop="createdAt" label="时间" width="172" />
             <el-table-column prop="groupId" label="群" width="118" />
@@ -199,6 +374,11 @@ onMounted(async () => {
             <el-table-column label="详情" min-width="320">
               <template #default="{ row }">
                 <div class="table-snippet">{{ shortText(row.detail) }}</div>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="92" fixed="right">
+              <template #default="{ row }">
+                <el-button :icon="CopyDocument" link type="primary" @click="copyAdminOp(row)">复制</el-button>
               </template>
             </el-table-column>
           </el-table>
