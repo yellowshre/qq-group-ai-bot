@@ -126,6 +126,28 @@ export interface ChatHistoryImportResponse {
   duplicateImport: boolean
 }
 
+export interface ChatImportBatchSummary {
+  batchId: number
+  groupId: string
+  sourceFile?: string | null
+  chatName?: string | null
+  exporterName?: string | null
+  exporterVersion?: string | null
+  startTime?: string | null
+  endTime?: string | null
+  totalMessages?: number | null
+  rawCount?: number | null
+  cleanCount?: number | null
+  mentionCount?: number | null
+  replyCount?: number | null
+  sessionCount?: number | null
+  memberCount?: number | null
+  status?: string | null
+  errorMessage?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
 export interface PublishResponse {
   published: number
   skipped: number
@@ -242,6 +264,14 @@ export function importChatHistory(groupId: string, filePath: string) {
     groupId,
     filePath,
   })
+}
+
+export function listImportBatches(groupId?: string | null, status?: string | null, limit = 20) {
+  const params = new URLSearchParams()
+  if (groupId?.trim()) params.set('groupId', groupId.trim())
+  if (status?.trim()) params.set('status', status.trim())
+  params.set('limit', `${limit}`)
+  return apiGet<ChatImportBatchSummary[]>(`/dev/chat-history/import-batches?${params.toString()}`)
 }
 
 export function listKnowledgeCandidates(query: CandidateQuery) {

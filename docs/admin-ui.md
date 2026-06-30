@@ -45,6 +45,7 @@ POST /dev/simulate/group-message
 GET /dev/chat-history/member-rank
 POST /dev/chat-history/member-rank
 POST /dev/chat-history/candidates/generate
+GET /dev/chat-history/import-batches
 GET /dev/chat-history/candidates
 POST /dev/chat-history/candidates/{id}/review
 GET /dev/chat-history/member-candidates
@@ -252,6 +253,7 @@ POST /dev/chat-history/dify-context/simulate
 `/admin/pipeline` 是第十阶段数据流的操作编排页，复用已有后端接口，不新增主链路行为：
 
 - 导入 `data/chat-export/` 下的 NapCat-QCE JSON。
+- 查看最近导入批次摘要，包含状态、计数、文件名和短错误信息。
 - 根据 `batchId + groupId` 生成候选群梗和候选成员画像。
 - 读取当前筛选条件下 `APPROVED` 候选数量。
 - 发布已审批候选到正式知识库和正式成员画像。

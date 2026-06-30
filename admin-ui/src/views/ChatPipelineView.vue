@@ -7,6 +7,7 @@ import {
   generateCandidates,
   generateEmbeddings,
   importChatHistory,
+  listImportBatches,
   listKnowledgeCandidates,
   listMemberCandidates,
   previewRouteKnowledge,
@@ -14,6 +15,7 @@ import {
   publishMemberProfiles,
   simulateDifyContext,
   type ChatHistoryImportResponse,
+  type ChatImportBatchSummary,
   type DifyContextSimulateResponse,
   type EmbeddingGenerateResponse,
   type GenerateCandidatesResponse,
@@ -28,6 +30,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 const loading = ref(false)
 const acting = ref(false)
 const overview = ref<AdminOverviewResponse | null>(null)
+const importBatches = ref<ChatImportBatchSummary[]>([])
 const approvedKnowledge = ref<KnowledgeCandidate[]>([])
 const approvedMembers = ref<MemberCandidate[]>([])
 const importResult = ref<ChatHistoryImportResponse | null>(null)
@@ -43,6 +46,8 @@ const form = ref({
   batchId: '',
   operator: 'local-admin',
   comment: '',
+  batchStatus: '',
+  batchLimit: 20,
   messageText: '这个操作也太经典了',
   senderUid: '',
   routeType: 'MEME',
@@ -60,6 +65,13 @@ const routeOptions = [
 const targetTypeOptions = [
   { label: '正式知识', value: 'GROUP_KNOWLEDGE' },
   { label: '成员画像', value: 'MEMBER_PROFILE' },
+]
+
+const batchStatusOptions = [
+  { label: '全部', value: '' },
+  { label: '成功', value: 'SUCCESS' },
+  { label: '失败', value: 'FAILED' },
+  { label: '运行中', value: 'RUNNING' },
 ]
 
 const approvedKnowledgeIds = computed(() => approvedKnowledge.value.map((item) => item.id))
@@ -121,8 +133,9 @@ async function refreshPipeline() {
   const groupId = form.value.groupId.trim()
   loading.value = true
   try {
-    const [overviewData, knowledge, members] = await Promise.all([
+    const [overviewData, batches, knowledge, members] = await Promise.all([
       getAdminOverview(groupId || undefined),
+      listImportBatches(groupId || null, form.value.batchStatus || null, form.value.batchLimit),
       listKnowledgeCandidates({
         groupId: groupId || null,
         batchId: form.value.batchId.trim() || null,
@@ -135,6 +148,7 @@ async function refreshPipeline() {
       }),
     ])
     overview.value = overviewData
+    importBatches.value = batches
     approvedKnowledge.value = knowledge
     approvedMembers.value = members
     if (!form.value.batchId.trim() && overviewData.latestImport?.batchId) {
@@ -324,6 +338,20 @@ function formatNumber(value?: number | null) {
   return new Intl.NumberFormat('zh-CN').format(value ?? 0)
 }
 
+function setBatch(batch: ChatImportBatchSummary) {
+  form.value.groupId = batch.groupId
+  form.value.batchId = `${batch.batchId}`
+  if (batch.sourceFile) {
+    form.value.filePath = batch.sourceFile
+  }
+}
+
+function statusType(status?: string | null) {
+  if (status === 'SUCCESS') return 'success'
+  if (status === 'FAILED') return 'danger'
+  return 'warning'
+}
+
 function jsonText(value: unknown) {
   return JSON.stringify(value ?? {}, null, 2)
 }
@@ -389,10 +417,64 @@ onMounted(refreshPipeline)
         <el-form-item label="备注">
           <el-input v-model="form.comment" placeholder="可选，会进入发布/审核相关日志" clearable />
         </el-form-item>
+        <el-form-item label="批次状态">
+          <el-select v-model="form.batchStatus">
+            <el-option
+              v-for="item in batchStatusOptions"
+              :key="item.value || 'ALL'"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="批次数量">
+          <el-input-number v-model="form.batchLimit" :min="1" :max="100" />
+        </el-form-item>
         <el-form-item class="rank-submit">
           <el-button :icon="Search" type="primary" :loading="loading" @click="refreshPipeline">查询</el-button>
         </el-form-item>
       </el-form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <div>
+          <h3>导入批次历史</h3>
+          <span class="panel-subtitle">只读展示 chat_import_batch 摘要，不展示聊天正文和 sourceHash。</span>
+        </div>
+      </div>
+      <el-table v-if="importBatches.length" :data="importBatches" class="rank-table">
+        <el-table-column prop="batchId" label="Batch" width="86" />
+        <el-table-column label="状态" width="104">
+          <template #default="{ row }">
+            <el-tag :type="statusType(row.status)" effect="plain">{{ row.status || '-' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="groupId" label="群号" width="128" />
+        <el-table-column label="消息" width="132">
+          <template #default="{ row }">
+            {{ formatNumber(row.rawCount) }} / {{ formatNumber(row.cleanCount) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="结构" width="132">
+          <template #default="{ row }">
+            {{ formatNumber(row.sessionCount) }} 会话 / {{ formatNumber(row.memberCount) }} 人
+          </template>
+        </el-table-column>
+        <el-table-column prop="sourceFile" label="文件" min-width="260" />
+        <el-table-column prop="createdAt" label="创建时间" width="172" />
+        <el-table-column label="错误" min-width="220">
+          <template #default="{ row }">
+            <span class="table-snippet">{{ row.errorMessage || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="110" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" plain @click="setBatch(row)">使用</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-else class="empty-block compact">暂无导入批次。导入 JSON 成功或失败后都会显示在这里。</div>
     </section>
 
     <section class="panel-grid two">
