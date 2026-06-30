@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Refresh } from '@element-plus/icons-vue'
+import { CopyDocument, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 
@@ -53,6 +53,14 @@ const allGroupIds = computed(() => {
 
 const selectedConfigured = computed(() => configuredGroupIds.value.includes(selectedGroupId.value))
 const selectedSourceText = computed(() => (selectedConfigured.value ? '数据库记录' : '默认配置'))
+const statusSummary = computed(() => [
+  `总开关 ${displayValue(form.botOn)}`,
+  `A ${displayValue(form.enableMeme)}`,
+  `B ${displayValue(form.enablePassiveChat)}`,
+  `C ${displayValue(form.enableAutoJoin)}`,
+  `知识 ${displayValue(form.enableKnowledgeContext)}`,
+  `冷却 ${form.activeCooldownSeconds}s`,
+])
 const diffItems = computed(() => {
   if (!baseline.value) return []
   const current = normalizeRequest()
@@ -148,6 +156,71 @@ async function save() {
   }
 }
 
+function applyPreset(type: 'quiet' | 'memeOnly' | 'memeAndPassive' | 'memeKnowledge' | 'activeConservative') {
+  if (type === 'quiet') {
+    form.botOn = false
+    form.enableAutoJoin = false
+  } else if (type === 'memeOnly') {
+    form.botOn = true
+    form.enableChat = true
+    form.enableMeme = true
+    form.enablePassiveChat = false
+    form.enableAutoJoin = false
+  } else if (type === 'memeAndPassive') {
+    form.botOn = true
+    form.enableChat = true
+    form.enableMeme = true
+    form.enablePassiveChat = true
+    form.enableAutoJoin = false
+  } else if (type === 'memeKnowledge') {
+    form.enableKnowledgeContext = true
+    form.enableMemeKnowledge = true
+    form.enablePassiveChatKnowledge = false
+    form.enableActiveChatKnowledge = false
+  } else if (type === 'activeConservative') {
+    form.botOn = true
+    form.enableChat = true
+    form.enableAutoJoin = true
+    form.activeCooldownSeconds = 300
+    form.activeMaxPerHour = 3
+    form.activeMaxPerDay = 10
+  }
+}
+
+function clearPersona() {
+  form.persona = ''
+}
+
+async function copyStatus() {
+  if (!selectedGroupId.value) {
+    ElMessage.warning('请先选择群')
+    return
+  }
+  const text = [
+    `群 ${selectedGroupId.value} 当前配置`,
+    `机器人总开关：${displayValue(form.botOn)}`,
+    `聊天总开关：${displayValue(form.enableChat)}`,
+    `表情包 A：${displayValue(form.enableMeme)}`,
+    `被动聊天 B：${displayValue(form.enablePassiveChat)}`,
+    `主动插话 C：${displayValue(form.enableAutoJoin)}`,
+    `知识库总开关：${displayValue(form.enableKnowledgeContext)}`,
+    `表情包知识：${displayValue(form.enableMemeKnowledge)}`,
+    `聊天知识：${displayValue(form.enablePassiveChatKnowledge)}`,
+    `主动知识：${displayValue(form.enableActiveChatKnowledge)}`,
+    `冷却：${form.activeCooldownSeconds} 秒`,
+    `小时上限：${form.activeMaxPerHour}`,
+    `每日上限：${form.activeMaxPerDay}`,
+    `记忆模式：${displayValue(form.memoryMode)}`,
+    `人设：${form.persona?.trim() ? '已配置' : '默认'}`,
+  ].join('\n')
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success('群配置摘要已复制')
+  } catch {
+    ElMessage.error('复制失败，可以手动查看页面配置')
+  }
+}
+
 function applySnapshot(config: GroupConfigSnapshot) {
   selectedGroupId.value = config.groupId
   inputGroupId.value = config.groupId
@@ -225,7 +298,8 @@ onMounted(loadList)
       <template #eyebrow>Group Ops</template>
       <template #actions>
         <el-button :icon="Refresh" :loading="loading" @click="loadList">刷新</el-button>
-        <el-button type="primary" :loading="saving" @click="save">保存配置</el-button>
+        <el-button :icon="CopyDocument" :disabled="!selectedGroupId" @click="copyStatus">复制状态</el-button>
+        <el-button type="primary" :disabled="!isDirty" :loading="saving" @click="save">保存配置</el-button>
       </template>
     </PageHeader>
 
@@ -271,6 +345,18 @@ onMounted(loadList)
             active-text="已存在"
             inactive-text="保存后创建"
           />
+        </div>
+
+        <div class="result-strip group-config-summary">
+          <span v-for="item in statusSummary" :key="item">{{ item }}</span>
+        </div>
+
+        <div class="group-preset-row">
+          <el-button size="small" @click="applyPreset('quiet')">安静模式</el-button>
+          <el-button size="small" @click="applyPreset('memeOnly')">只开表情包 A</el-button>
+          <el-button size="small" @click="applyPreset('memeAndPassive')">开启 A+B</el-button>
+          <el-button size="small" @click="applyPreset('memeKnowledge')">灰度表情包知识</el-button>
+          <el-button size="small" @click="applyPreset('activeConservative')">主动插话保守档</el-button>
         </div>
 
         <div class="change-preview">
@@ -366,6 +452,10 @@ onMounted(loadList)
                 placeholder="留空则使用默认人设"
               />
             </el-form-item>
+            <div class="persona-tools">
+              <span>{{ form.persona?.length || 0 }} 字，留空会回退默认人设</span>
+              <el-button size="small" @click="clearPersona">清空人设</el-button>
+            </div>
             <div class="number-form-grid">
               <el-form-item label="安全词">
                 <el-input v-model="form.safeWord" placeholder="留空关闭" clearable />

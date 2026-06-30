@@ -1056,6 +1056,17 @@ textarea {
   gap: 18px;
 }
 
+.group-config-summary {
+  margin-bottom: 12px;
+}
+
+.group-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
 .change-preview {
   display: grid;
   gap: 12px;
@@ -1160,6 +1171,19 @@ textarea {
 .config-form .el-input-number,
 .config-form .el-select {
   width: 100%;
+}
+
+.persona-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: -8px;
+}
+
+.persona-tools span {
+  color: var(--subtle);
+  font-size: 12px;
 }
 
 .empty-block.compact {
