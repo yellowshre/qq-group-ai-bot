@@ -57,7 +57,7 @@ GET /dev/chat-history/member-profiles
 
 ## API 响应兼容
 
-当前后端先统一错误响应，格式为：
+当前 `/dev/*` 接口统一使用响应 envelope。错误响应格式为：
 
 ```json
 {
@@ -69,7 +69,19 @@ GET /dev/chat-history/member-profiles
 }
 ```
 
-成功响应暂时保留现有裸 DTO / list / map，前端请求客户端已兼容未来的 `{ "success": true, "data": ... }` 包装格式。等管理台页面稳定后，可以再逐步把 `/dev/*` 和 `/dev/admin/*` 的成功响应统一成同一 envelope。
+成功响应格式为：
+
+```json
+{
+  "success": true,
+  "code": "OK",
+  "message": "ok",
+  "data": {},
+  "timestamp": "2026-06-30T00:00:00Z"
+}
+```
+
+前端请求客户端会自动解包 `data`，同时仍兼容旧的裸 DTO / list / map，便于后续接口小步迁移或回滚。静态 `/admin/*` 页面不走该 envelope 包装。
 
 ## Admin API Token
 
