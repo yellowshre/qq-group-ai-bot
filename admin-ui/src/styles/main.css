@@ -451,6 +451,47 @@ textarea {
   gap: 12px;
 }
 
+.rank-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.rank-preset-card {
+  display: grid;
+  gap: 5px;
+  min-height: 76px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.rank-preset-card:hover,
+.rank-preset-card.active {
+  border-color: #c9d8ff;
+  background: var(--accent-soft);
+}
+
+.rank-preset-card span {
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.rank-preset-card small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .knowledge-filter {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -496,6 +537,25 @@ textarea {
 .rank-table {
   --el-table-border-color: var(--line);
   --el-table-header-bg-color: #f7f7f4;
+}
+
+.rank-result-strip {
+  margin-bottom: 14px;
+}
+
+.member-cell {
+  display: grid;
+  gap: 2px;
+}
+
+.member-cell strong,
+.rank-score {
+  font-weight: 760;
+}
+
+.member-cell span {
+  color: var(--subtle);
+  font-size: 12px;
 }
 
 .knowledge-tabs {

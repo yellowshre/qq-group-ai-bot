@@ -217,6 +217,26 @@ POST /dev/chat-history/dify-context/simulate
 
 页面只展示候选内容、证据摘要、正式知识和受控 `knowledgeContext` 预览，不做完整聊天原文浏览。
 
+## 成员排行
+
+`/admin/member-rank` 接入：
+
+```http
+GET /dev/chat-history/member-rank
+POST /dev/chat-history/member-rank
+```
+
+当前支持：
+
+- 按群号、可选 `batchId`、排行类型、日期范围和 Top N 查询。
+- 快捷切换发言数、原始消息数、活跃天数、提到别人、回复别人、被回复、参与会话。
+- 快捷设置全量、最近 7 天、最近 30 天、本月。
+- 查询结果展示本次请求摘要，便于确认当前看的是哪个群、哪个批次和哪个日期范围。
+- 复制适合发到私聊/群内的文本版排行。
+- 导出 CSV，用于本地二次分析。
+
+成员排行只读取 `chat_member_stat` 和 `chat_member_stat_daily` 的统计摘要，不返回完整聊天正文。群内公开排行命令默认仍由后端 env 开关控制。
+
 ## 运行日志诊断
 
 `/admin/logs` 当前接入：
