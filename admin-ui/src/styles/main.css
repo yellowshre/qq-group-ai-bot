@@ -828,6 +828,10 @@ textarea {
   align-items: start;
 }
 
+.meme-result-strip {
+  margin-bottom: 12px;
+}
+
 .meme-side,
 .group-picker {
   position: sticky;
@@ -895,6 +899,38 @@ textarea {
 
 .meme-editor {
   grid-column: 2;
+}
+
+.meme-path-tools {
+  display: grid;
+  gap: 10px;
+  margin-top: -8px;
+}
+
+.meme-hint-list {
+  display: grid;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfbfa;
+}
+
+.meme-hint-list span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.meme-hint-list span.good {
+  color: var(--good);
+}
+
+.keyword-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: -6px;
 }
 
 .manual-group-row {
