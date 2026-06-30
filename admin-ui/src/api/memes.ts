@@ -18,6 +18,19 @@ export interface MemeMaterial {
   updatedAt?: string | null
 }
 
+export interface MemeFileCheckItem {
+  memeId: number
+  sceneCode?: string | null
+  enabled?: boolean | null
+  filePath: string
+  resolvedPath?: string | null
+  oneBotFile?: string | null
+  exists?: boolean | null
+  checkable: boolean
+  directReference: boolean
+  warning?: string | null
+}
+
 export interface SceneDictRequest {
   sceneDesc: string
   confidenceThreshold: number
@@ -69,4 +82,8 @@ export function updateMemeMaterial(memeId: number, request: MemeMaterialRequest)
 
 export function preheatMemeCache() {
   return apiPost<{ success: boolean }>('/dev/admin/memes/cache/preheat', {})
+}
+
+export function checkMemeFiles(query: Pick<MemeMaterialQuery, 'sceneCode' | 'enabled'>) {
+  return apiGet<MemeFileCheckItem[]>(withQuery('/dev/admin/memes/files/check', query))
 }

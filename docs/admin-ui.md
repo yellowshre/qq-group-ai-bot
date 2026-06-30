@@ -40,6 +40,7 @@ GET /dev/admin/memes/materials/{memeId}
 POST /dev/admin/memes/materials
 PUT /dev/admin/memes/materials/{memeId}
 POST /dev/admin/memes/cache/preheat
+GET /dev/admin/memes/files/check
 GET /dev/admin/logs/triggers
 GET /dev/admin/logs/admin-ops
 POST /dev/simulate/group-message
@@ -196,6 +197,7 @@ GET /dev/admin/overview?groupId=251288204
 - 显示当前筛选下的素材数量、启用数量和停用数量。
 - 在编辑区预览关键词拆分结果。
 - 提供按场景生成建议路径、复制路径和路径规范提示。
+- 提供“路径巡检”，按当前 scene / enabled 筛选检查 `meme_material.file_path` 解析后的本地文件是否存在，并展示 OneBot `file://` 结果。
 
 图片路径仍然建议写相对路径，例如：
 
@@ -207,7 +209,7 @@ comfort/comfort_001.jpg
 
 素材管理不会上传真实图片，只维护数据库里的路径和匹配元数据。图片文件仍放在项目 `memes/` 目录或 `QQBOT_MEME_BASE_DIR` 指向的目录下。
 
-路径提示只做前端辅助，不会替你检查文件是否真实存在；真实发送前仍由后端 OneBot 图片路径解析器检查最终文件路径并记录 warn。
+路径格式提示只做前端辅助；“路径巡检”会调用后端同一套 OneBot 图片路径解析逻辑，检查本地可检查路径是否存在。`http://`、`https://`、`base64://` 等直接引用不会做本地存在性检查。真实发送前后端仍会再次检查最终文件路径并记录 warn。
 
 ## 知识库工作台
 

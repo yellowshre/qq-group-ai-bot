@@ -1,6 +1,7 @@
 package com.yh.qqbot.adapter.onebot;
 
 import com.yh.qqbot.config.properties.QqBotProperties;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.slf4j.Logger;
@@ -20,31 +21,84 @@ public class OneBotImagePathResolver {
     }
 
     public String toOneBotFile(String imagePath) {
-        if (!hasText(imagePath)) {
+        ImagePathInspection inspection = inspect(imagePath);
+        if (!hasText(inspection.oneBotFile())) {
             return "";
         }
+        if (Boolean.FALSE.equals(inspection.exists()) && inspection.checkable()) {
+            log.warn("Meme image file does not exist. imagePath={}, resolvedPath={}",
+                    imagePath, inspection.resolvedPath());
+        }
+        if (!inspection.checkable() && hasText(inspection.warning())) {
+            log.warn("Meme image file cannot be checked. imagePath={}, resolvedPath={}, warning={}",
+                    imagePath, inspection.resolvedPath(), inspection.warning());
+        }
+        return inspection.oneBotFile();
+    }
 
+    public ImagePathInspection inspect(String imagePath) {
+        if (!hasText(imagePath)) {
+            return new ImagePathInspection(imagePath, "", "", null, false, false, "empty image path");
+        }
         String trimmed = imagePath.strip();
         if (isDirectReference(trimmed)) {
-            return trimmed;
+            return inspectDirectReference(trimmed);
         }
 
         if (isWindowsAbsolutePath(trimmed)) {
             Path windowsPath = Path.of(trimmed);
             if (windowsPath.isAbsolute()) {
                 Path normalized = windowsPath.normalize();
-                warnIfMissing(imagePath, normalized);
-                return normalized.toUri().toString();
+                return inspectPath(imagePath, normalized, normalized.toUri().toString());
             }
             String normalized = trimmed.replace("\\", "/");
-            log.warn("Meme image file does not exist or cannot be checked on this OS. imagePath={}, resolvedPath={}",
-                    imagePath, normalized);
-            return "file:///" + normalized;
+            return new ImagePathInspection(
+                    imagePath,
+                    "file:///" + normalized,
+                    normalized,
+                    null,
+                    false,
+                    false,
+                    "windows absolute path cannot be checked on current OS");
         }
 
         Path resolved = resolvePath(trimmed);
-        warnIfMissing(imagePath, resolved);
-        return resolved.toUri().toString();
+        return inspectPath(imagePath, resolved, resolved.toUri().toString());
+    }
+
+    private ImagePathInspection inspectDirectReference(String value) {
+        String lower = value.toLowerCase();
+        if (lower.startsWith("file://")) {
+            try {
+                Path path = Path.of(URI.create(value)).normalize();
+                return inspectPath(value, path, value);
+            } catch (Exception ex) {
+                return new ImagePathInspection(value, value, value, null, true, false, "invalid file uri");
+            }
+        }
+        return new ImagePathInspection(value, value, value, null, true, false, "remote or inline image reference");
+    }
+
+    private ImagePathInspection inspectPath(String originalPath, Path resolvedPath, String oneBotFile) {
+        try {
+            return new ImagePathInspection(
+                    originalPath,
+                    oneBotFile,
+                    resolvedPath.toString(),
+                    Files.exists(resolvedPath),
+                    false,
+                    true,
+                    null);
+        } catch (Exception ex) {
+            return new ImagePathInspection(
+                    originalPath,
+                    oneBotFile,
+                    resolvedPath.toString(),
+                    null,
+                    false,
+                    false,
+                    ex.getMessage());
+        }
     }
 
     private Path resolvePath(String imagePath) {
@@ -64,16 +118,6 @@ public class OneBotImagePathResolver {
         return path.isAbsolute() ? path.normalize() : path.toAbsolutePath().normalize();
     }
 
-    private void warnIfMissing(String originalPath, Path resolvedPath) {
-        try {
-            if (Files.notExists(resolvedPath)) {
-                log.warn("Meme image file does not exist. imagePath={}, resolvedPath={}", originalPath, resolvedPath);
-            }
-        } catch (Exception ex) {
-            log.warn("Unable to check meme image file. imagePath={}, resolvedPath={}", originalPath, resolvedPath, ex);
-        }
-    }
-
     private boolean isDirectReference(String value) {
         String lower = value.toLowerCase();
         return lower.startsWith("http://")
@@ -91,5 +135,15 @@ public class OneBotImagePathResolver {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    public record ImagePathInspection(
+            String imagePath,
+            String oneBotFile,
+            String resolvedPath,
+            Boolean exists,
+            boolean directReference,
+            boolean checkable,
+            String warning) {
     }
 }

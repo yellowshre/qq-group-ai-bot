@@ -30,6 +30,19 @@ class OneBotImagePathResolverTest {
                 .isEqualTo("file:///C:/qqbot/memes/laugh_001.png");
     }
 
+    @Test
+    void inspectReportsMissingRelativeMemePath() throws Exception {
+        Path baseDir = Path.of("target", "test-memes", UUID.randomUUID().toString()).toAbsolutePath();
+        Object resolver = resolver(baseDir.toString());
+
+        Object inspection = inspect(resolver, "laugh/missing.png");
+
+        assertThat(invoke(inspection, "exists")).isEqualTo(false);
+        assertThat(invoke(inspection, "checkable")).isEqualTo(true);
+        assertThat((String) invoke(inspection, "resolvedPath")).contains("laugh").contains("missing.png");
+        assertThat((String) invoke(inspection, "oneBotFile")).startsWith("file:");
+    }
+
     private Object resolver(String baseDir) throws Exception {
         Object properties = cls("com.yh.qqbot.config.properties.QqBotProperties").getConstructor().newInstance();
         if (baseDir != null && !baseDir.isBlank()) {
@@ -43,6 +56,14 @@ class OneBotImagePathResolverTest {
 
     private String toOneBotFile(Object resolver, String imagePath) throws Exception {
         return (String) resolver.getClass().getMethod("toOneBotFile", String.class).invoke(resolver, imagePath);
+    }
+
+    private Object inspect(Object resolver, String imagePath) throws Exception {
+        return resolver.getClass().getMethod("inspect", String.class).invoke(resolver, imagePath);
+    }
+
+    private Object invoke(Object target, String methodName) throws Exception {
+        return target.getClass().getMethod(methodName).invoke(target);
     }
 
     private Class<?> cls(String name) throws ClassNotFoundException {

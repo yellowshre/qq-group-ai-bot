@@ -4,12 +4,14 @@ import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
 
 import {
+  checkMemeFiles,
   createMemeMaterial,
   listMemeMaterials,
   listScenes,
   preheatMemeCache,
   saveScene,
   updateMemeMaterial,
+  type MemeFileCheckItem,
   type MemeMaterial,
   type MemeMaterialRequest,
   type SceneDict,
@@ -20,6 +22,7 @@ const loading = ref(false)
 const saving = ref(false)
 const scenes = ref<SceneDict[]>([])
 const materials = ref<MemeMaterial[]>([])
+const fileChecks = ref<MemeFileCheckItem[]>([])
 const selected = ref<MemeMaterial | null>(null)
 const filter = reactive({
   sceneCode: '',
@@ -56,6 +59,19 @@ const materialStats = computed(() => {
     `启用 ${enabled}`,
     `停用 ${disabled}`,
     currentScene,
+  ]
+})
+
+const fileCheckStats = computed(() => {
+  const total = fileChecks.value.length
+  const ok = fileChecks.value.filter((item) => item.exists === true).length
+  const missing = fileChecks.value.filter((item) => item.exists === false).length
+  const unchecked = fileChecks.value.filter((item) => item.exists === null || item.exists === undefined).length
+  return [
+    `checked ${total}`,
+    `ok ${ok}`,
+    `missing ${missing}`,
+    `unchecked ${unchecked}`,
   ]
 })
 
@@ -137,6 +153,26 @@ async function refreshCache() {
     ElMessage.error(error instanceof Error ? error.message : '缓存刷新失败')
   } finally {
     saving.value = false
+  }
+}
+
+async function runFileCheck() {
+  loading.value = true
+  try {
+    fileChecks.value = await checkMemeFiles({
+      sceneCode: filter.sceneCode || null,
+      enabled: enabledFilter.value,
+    })
+    const missing = fileChecks.value.filter((item) => item.exists === false).length
+    if (missing > 0) {
+      ElMessage.warning(`路径巡检完成，发现 ${missing} 个缺失文件`)
+    } else {
+      ElMessage.success('路径巡检完成')
+    }
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '路径巡检失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -262,6 +298,18 @@ function validateMemePath(value?: string | null) {
   return warnings.length ? warnings : ['路径格式看起来没问题。']
 }
 
+function fileCheckTagType(item: MemeFileCheckItem) {
+  if (item.exists === true) return 'success'
+  if (item.exists === false) return 'danger'
+  return 'info'
+}
+
+function fileCheckText(item: MemeFileCheckItem) {
+  if (item.exists === true) return 'exists'
+  if (item.exists === false) return 'missing'
+  return item.checkable ? 'unknown' : 'not checkable'
+}
+
 onMounted(loadAll)
 </script>
 
@@ -275,6 +323,7 @@ onMounted(loadAll)
       <template #actions>
         <el-button :icon="Refresh" :loading="loading" @click="loadAll">刷新</el-button>
         <el-button :loading="saving" @click="refreshCache">刷新缓存</el-button>
+        <el-button :loading="loading" @click="runFileCheck">路径巡检</el-button>
         <el-button @click="newMaterial">新增素材</el-button>
       </template>
     </PageHeader>
@@ -319,7 +368,7 @@ onMounted(loadAll)
         </el-form>
       </aside>
 
-      <section class="panel">
+      <section class="panel meme-file-check">
         <div class="panel-title-row">
           <h3>素材列表</h3>
           <span class="panel-subtitle">meme_material</span>
@@ -380,6 +429,48 @@ onMounted(loadAll)
           </el-table-column>
         </el-table>
         <div v-else class="empty-block compact">暂无素材。可以先新增一条相对路径素材。</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title-row">
+          <h3>图片路径巡检</h3>
+          <span class="panel-subtitle">按当前 scene / enabled 筛选检查 meme_material.file_path</span>
+        </div>
+        <div class="result-strip meme-result-strip">
+          <span v-for="item in fileCheckStats" :key="item">{{ item }}</span>
+        </div>
+        <el-table v-if="fileChecks.length" :data="fileChecks" class="rank-table">
+          <el-table-column prop="memeId" label="ID" width="76" />
+          <el-table-column label="状态" width="110">
+            <template #default="{ row }">
+              <el-tag :type="fileCheckTagType(row)" effect="plain">
+                {{ fileCheckText(row) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sceneCode" label="场景" width="110" />
+          <el-table-column label="数据库路径" min-width="220">
+            <template #default="{ row }">
+              <div class="table-title">{{ row.filePath || '-' }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column label="解析后路径" min-width="280">
+            <template #default="{ row }">
+              <div class="table-snippet">{{ row.resolvedPath || '-' }}</div>
+              <div class="table-snippet">{{ row.oneBotFile || '-' }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column label="说明" min-width="220">
+            <template #default="{ row }">
+              <div class="table-snippet">
+                {{ row.warning || (row.checkable ? 'local file checked' : 'not checkable') }}
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div v-else class="empty-block compact">
+          点击“路径巡检”后，这里会展示当前筛选条件下素材文件是否存在。
+        </div>
       </section>
 
       <section class="panel meme-editor">

@@ -1,6 +1,8 @@
 package com.yh.qqbot.adapter.dev;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.yh.qqbot.adapter.onebot.OneBotImagePathResolver;
+import com.yh.qqbot.dto.AdminMemeFileCheckItem;
 import com.yh.qqbot.dto.AdminMemeMaterialRequest;
 import com.yh.qqbot.dto.AdminSceneDictRequest;
 import com.yh.qqbot.entity.MemeMaterialEntity;
@@ -29,14 +31,17 @@ public class AdminMemeController {
     private final SceneDictMapper sceneDictMapper;
     private final MemeMaterialMapper memeMaterialMapper;
     private final MemeCacheService memeCacheService;
+    private final OneBotImagePathResolver imagePathResolver;
 
     public AdminMemeController(
             SceneDictMapper sceneDictMapper,
             MemeMaterialMapper memeMaterialMapper,
-            MemeCacheService memeCacheService) {
+            MemeCacheService memeCacheService,
+            OneBotImagePathResolver imagePathResolver) {
         this.sceneDictMapper = sceneDictMapper;
         this.memeMaterialMapper = memeMaterialMapper;
         this.memeCacheService = memeCacheService;
+        this.imagePathResolver = imagePathResolver;
     }
 
     @GetMapping("/scenes")
@@ -120,6 +125,20 @@ public class AdminMemeController {
     public Map<String, Object> preheatCache() {
         memeCacheService.preheat();
         return Map.of("success", true);
+    }
+
+    @GetMapping("/files/check")
+    public List<AdminMemeFileCheckItem> checkFiles(
+            @RequestParam(required = false) String sceneCode,
+            @RequestParam(required = false) Boolean enabled) {
+        LambdaQueryWrapper<MemeMaterialEntity> wrapper = new LambdaQueryWrapper<MemeMaterialEntity>()
+                .eq(hasText(sceneCode), MemeMaterialEntity::getSceneCode, sceneCode == null ? null : sceneCode.strip())
+                .eq(enabled != null, MemeMaterialEntity::getEnabled, enabled)
+                .orderByAsc(MemeMaterialEntity::getSceneCode)
+                .orderByAsc(MemeMaterialEntity::getMemeId);
+        return memeMaterialMapper.selectList(wrapper).stream()
+                .map(entity -> AdminMemeFileCheckItem.from(entity, imagePathResolver.inspect(entity.getFilePath())))
+                .toList();
     }
 
     private void applyMaterial(MemeMaterialEntity entity, AdminMemeMaterialRequest request) {

@@ -1152,6 +1152,10 @@ textarea {
   grid-column: 2;
 }
 
+.meme-file-check {
+  grid-column: 2;
+}
+
 .meme-path-tools {
   display: grid;
   gap: 10px;
@@ -1433,6 +1437,10 @@ textarea {
   }
 
   .meme-editor {
+    grid-column: auto;
+  }
+
+  .meme-file-check {
     grid-column: auto;
   }
 
