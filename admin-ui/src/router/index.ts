@@ -34,6 +34,12 @@ const router = createRouter({
       meta: { title: '数据流水线' },
     },
     {
+      path: '/insights',
+      name: 'insights',
+      component: () => import('@/views/ChatInsightsView.vue'),
+      meta: { title: '聊天洞察' },
+    },
+    {
       path: '/member-rank',
       name: 'member-rank',
       component: () => import('@/views/MemberRankView.vue'),

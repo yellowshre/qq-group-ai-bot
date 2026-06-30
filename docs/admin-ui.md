@@ -17,6 +17,7 @@
 /admin/memes         表情包素材管理
 /admin/knowledge     知识候选审批工作台
 /admin/pipeline      聊天数据导入与知识发布流水线
+/admin/insights      聊天统计趋势与多维排行洞察
 /admin/member-rank   成员排行查询
 /admin/simulate      群消息模拟与路由调试
 /admin/logs          运行日志诊断
@@ -44,6 +45,7 @@ GET /dev/admin/logs/admin-ops
 POST /dev/simulate/group-message
 GET /dev/chat-history/member-rank
 POST /dev/chat-history/member-rank
+GET /dev/chat-history/insights
 POST /dev/chat-history/candidates/generate
 GET /dev/chat-history/import-batches
 GET /dev/chat-history/candidates
@@ -267,6 +269,17 @@ POST /dev/chat-history/dify-context/simulate
 ```text
 data/chat-export/group_251288204_sample_20260628_185926.json
 ```
+
+## 成员排行
+
+`/admin/insights` 是导入数据的只读洞察页，面向“这份 JSON 导入后总体质量怎么样、哪几天活跃、有哪些成员在不同维度靠前”这类问题：
+
+- 汇总 raw / clean 消息、成员数、活跃天数、会话数、@ 和回复计数。
+- 按日期展示 clean message 趋势和活跃成员数。
+- 展示活跃成员摘要。
+- 复用成员排行接口，同时查看发言、回复、被回复、@ 和会话参与排行。
+
+洞察页只读取 `chat_member_stat_daily`、`chat_session`、`chat_clean_message` 等统计表，不展示完整聊天正文。
 
 ## 成员排行
 

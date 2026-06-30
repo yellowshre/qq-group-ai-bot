@@ -13,6 +13,7 @@ public class AdminUiForwardController {
             "/admin/memes",
             "/admin/knowledge",
             "/admin/pipeline",
+            "/admin/insights",
             "/admin/member-rank",
             "/admin/simulate",
             "/admin/logs",
