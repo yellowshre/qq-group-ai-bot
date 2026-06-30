@@ -69,7 +69,17 @@ const router = createRouter({
       component: () => import('@/views/OpsRunbookView.vue'),
       meta: { title: '运维手册' },
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      redirect: '/',
+    },
   ],
+})
+
+router.afterEach((to) => {
+  const title = String(to.meta.title ?? 'QQbot Admin')
+  document.title = title === 'QQbot Admin' ? title : `${title} - QQbot Admin`
 })
 
 export default router
