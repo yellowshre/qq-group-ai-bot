@@ -20,6 +20,7 @@
 /admin/simulate      群消息模拟与路由调试
 /admin/logs          运行日志诊断
 /admin/settings      运行配置诊断
+/admin/runbook       运维手册与指令参考
 ```
 
 当前已接入的后端接口：
@@ -125,6 +126,17 @@ X-QQBOT-ADMIN-TOKEN
 这些信息来自当前 Spring Boot 进程读取到的 env / YAML / 数据库结果，用于确认本地真实联调时到底读到了哪些运维配置。
 
 页面提供“复制诊断摘要”，只复制布尔状态和非敏感摘要，不包含 SnowLuma token、Dify API Key 或管理员 QQ 明细。
+
+## 运维手册
+
+`/admin/runbook` 是前端里的本地速查表：
+
+- 真实联调启动命令。
+- 当前私聊控制、排行模块、OneBot、Dify、Admin token 的只读状态。
+- 群内控制指令、私聊控制指令和成员排行指令。
+- `onebot-local.env` 常见 key 清单，只显示 key，不显示真实 value。
+
+运维手册不会编辑 env 文件，也不会返回 SnowLuma token、Dify API Key 或管理员 QQ 明细。它主要用于少翻文档、少手敲命令，以及把手机私聊遥控入口和前端日常运维入口的边界说清楚。
 
 ## 群配置编辑器
 
@@ -375,6 +387,7 @@ target/classes/static/admin/
 http://127.0.0.1:8081/admin/
 http://127.0.0.1:8081/admin/groups
 http://127.0.0.1:8081/admin/knowledge
+http://127.0.0.1:8081/admin/runbook
 ```
 
 推荐顺序：

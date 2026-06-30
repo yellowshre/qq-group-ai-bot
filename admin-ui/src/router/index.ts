@@ -51,6 +51,12 @@ const router = createRouter({
       component: () => import('@/views/RuntimeSettingsView.vue'),
       meta: { title: '运行配置' },
     },
+    {
+      path: '/runbook',
+      name: 'runbook',
+      component: () => import('@/views/OpsRunbookView.vue'),
+      meta: { title: '运维手册' },
+    },
   ],
 })
 

@@ -15,7 +15,8 @@ public class AdminUiForwardController {
             "/admin/member-rank",
             "/admin/simulate",
             "/admin/logs",
-            "/admin/settings"
+            "/admin/settings",
+            "/admin/runbook"
     })
     public String forwardAdminUi() {
         return "forward:/admin/index.html";

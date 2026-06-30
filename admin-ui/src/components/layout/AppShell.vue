@@ -26,6 +26,7 @@ const navItems = [
   { to: '/simulate', label: '消息模拟', description: '路由调试', icon: ChatDotRound },
   { to: '/logs', label: '运行日志', description: '路由诊断', icon: Tickets },
   { to: '/settings', label: '运行配置', description: '本地联调', icon: Setting },
+  { to: '/runbook', label: '运维手册', description: '指令参考', icon: Tickets },
 ]
 
 const pageTitle = computed(() => String(route.meta.title ?? 'QQbot Admin'))
