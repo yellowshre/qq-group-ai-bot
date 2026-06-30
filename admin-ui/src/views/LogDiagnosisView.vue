@@ -63,6 +63,12 @@ const adminStats = computed(() => {
   return [`已载入 ${total} 条`, `涉及群 ${groups}`, `操作人 ${operators}`]
 })
 
+const adminOperationShortcuts = computed(() =>
+  Array.from(new Set(adminOps.value.map((item) => item.operation).filter(Boolean)))
+    .sort()
+    .slice(0, 8),
+)
+
 async function loadTriggers() {
   loading.value = true
   try {
@@ -142,6 +148,33 @@ async function applyTriggerShortcut(type: 'silent' | 'meme' | 'passive' | 'activ
   await loadTriggers()
 }
 
+async function applyAdminOperationShortcut(operation: string) {
+  adminFilter.operation = operation
+  await loadAdminOps()
+}
+
+async function copyCurrentFilter() {
+  const lines = activeTab.value === 'admin-ops'
+    ? [
+        'admin_op_log filter',
+        `groupId=${display(adminFilter.groupId)}`,
+        `operatorUid=${display(adminFilter.operatorUid)}`,
+        `operation=${display(adminFilter.operation)}`,
+        `limit=${display(adminFilter.limit)}`,
+      ]
+    : [
+        'trigger_log filter',
+        `groupId=${display(triggerFilter.groupId)}`,
+        `userId=${display(triggerFilter.userId)}`,
+        `messageId=${display(triggerFilter.messageId)}`,
+        `responseType=${display(triggerFilter.responseType)}`,
+        `workflowType=${display(triggerFilter.workflowType)}`,
+        `success=${display(triggerFilter.success)}`,
+        `limit=${display(triggerFilter.limit)}`,
+      ]
+  await copyText(lines.join('\n'), '当前筛选条件已复制')
+}
+
 async function copyTrigger(row: TriggerLogItem) {
   await copyText(
     [
@@ -213,6 +246,7 @@ onMounted(async () => {
     >
       <template #eyebrow>Logs</template>
       <template #actions>
+        <el-button :icon="CopyDocument" @click="copyCurrentFilter">复制筛选</el-button>
         <el-button :icon="Refresh" :loading="loading" @click="loadCurrent">刷新当前页</el-button>
       </template>
     </PageHeader>
@@ -330,6 +364,14 @@ onMounted(async () => {
 
         <el-tab-pane label="管理员操作" name="admin-ops">
           <div class="log-shortcuts">
+            <el-button
+              v-for="operation in adminOperationShortcuts"
+              :key="operation"
+              size="small"
+              @click="applyAdminOperationShortcut(operation)"
+            >
+              {{ operation }}
+            </el-button>
             <el-button size="small" @click="resetAdminFilter">重置筛选</el-button>
           </div>
 
