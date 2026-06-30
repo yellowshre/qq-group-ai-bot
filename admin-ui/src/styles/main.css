@@ -444,6 +444,81 @@ textarea {
   font-weight: 680;
 }
 
+.readiness-grid,
+.pipeline-grid,
+.admin-link-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.readiness-grid {
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+}
+
+.pipeline-grid,
+.admin-link-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.readiness-item,
+.pipeline-step,
+.admin-link-card {
+  display: grid;
+  gap: 5px;
+  min-height: 82px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfbfa;
+}
+
+.readiness-item.active {
+  border-color: #cce9db;
+  background: var(--good-soft);
+}
+
+.readiness-item span,
+.pipeline-step span,
+.admin-link-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.readiness-item strong,
+.pipeline-step strong {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 780;
+}
+
+.readiness-item small,
+.pipeline-step small,
+.admin-link-card small {
+  color: var(--subtle);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.admin-link-card {
+  min-height: 78px;
+  color: var(--text);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.admin-link-card:hover {
+  border-color: #c9d8ff;
+  background: var(--accent-soft);
+}
+
+.admin-link-card span {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 760;
+}
+
 .rank-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -1140,7 +1215,9 @@ textarea {
   }
 
   .status-grid,
-  .panel-grid.two,
+    .panel-grid.two,
+    .pipeline-grid,
+    .admin-link-grid,
     .rank-form,
     .knowledge-filter,
     .log-filter,

@@ -25,6 +25,34 @@ const keyStatus = computed(() => {
   ]
 })
 const latestImport = computed(() => overview.value?.latestImport ?? null)
+const pendingTotal = computed(() =>
+  Number(overview.value?.pendingKnowledgeCandidates ?? 0)
+  + Number(overview.value?.pendingMemberCandidates ?? 0),
+)
+const readiness = computed(() => [
+  { label: 'MySQL', active: Boolean(health.value?.mysql.reachable), detail: health.value?.mysql.detail || 'database' },
+  { label: 'Redis', active: Boolean(health.value?.redis.reachable), detail: health.value?.redis.detail || 'cache' },
+  { label: 'OneBot WS', active: Boolean(health.value?.oneBot.wsEnabled), detail: health.value?.oneBot.selfId || 'not enabled' },
+  { label: 'Dify', active: Boolean(health.value?.dify.enabled), detail: health.value?.dify.baseUrlConfigured ? 'base url ok' : 'base url empty' },
+  { label: 'A key', active: Boolean(health.value?.dify.memeSceneApiKeyConfigured), detail: 'meme scene' },
+  { label: 'B key', active: Boolean(health.value?.dify.passiveChatApiKeyConfigured), detail: 'passive chat' },
+  { label: 'C key', active: Boolean(health.value?.dify.activeChatApiKeyConfigured), detail: 'active chat' },
+  { label: 'Sender', active: Boolean(health.value?.messageSenderType), detail: health.value?.messageSenderType || '-' },
+])
+const pipelineSteps = computed(() => [
+  { label: '导入批次', value: overview.value?.importBatches, hint: 'chat_import_batch' },
+  { label: '清洗消息', value: overview.value?.cleanMessages, hint: 'chat_clean_message' },
+  { label: '待审候选', value: pendingTotal.value, hint: 'knowledge/member candidates' },
+  { label: '正式知识', value: overview.value?.enabledGroupKnowledge, hint: 'enabled group knowledge' },
+  { label: '成员画像', value: overview.value?.enabledMemberProfiles, hint: 'enabled member profile' },
+  { label: 'Embedding', value: overview.value?.successfulEmbeddings, hint: 'SUCCESS' },
+])
+const adminLinks = [
+  { title: '群配置', description: '调整 A/B/C、知识灰度、人设和冷却上限', to: '/groups' },
+  { title: '知识审批', description: '生成、审批、发布、embedding 和召回预览', to: '/knowledge' },
+  { title: '表情包素材', description: '维护 scene_dict、关键词、权重和相对路径', to: '/memes' },
+  { title: '运行日志', description: '排查真实群路由、静默原因和管理员操作', to: '/logs' },
+]
 
 async function loadHealth() {
   loading.value = true
@@ -79,11 +107,62 @@ onMounted(loadHealth)
       <MetricCard label="Enabled memes" :value="health?.enabledMemeMaterialCount" hint="启用素材" />
     </section>
 
+    <section class="panel">
+      <div class="panel-title-row">
+        <div>
+          <h3>运行就绪清单</h3>
+          <span class="panel-subtitle">只展示布尔状态和非敏感摘要</span>
+        </div>
+        <span class="panel-subtitle">generatedAt {{ display(overview?.generatedAt) }}</span>
+      </div>
+      <div class="readiness-grid">
+        <div
+          v-for="item in readiness"
+          :key="item.label"
+          class="readiness-item"
+          :class="{ active: item.active }"
+        >
+          <span>{{ item.label }}</span>
+          <strong>{{ item.active ? 'OK' : 'CHECK' }}</strong>
+          <small>{{ item.detail }}</small>
+        </div>
+      </div>
+    </section>
+
     <section class="status-grid">
       <MetricCard label="Import batches" :value="overview?.importBatches" hint="导入批次" />
       <MetricCard label="Clean messages" :value="overview?.cleanMessages" hint="清洗消息" />
       <MetricCard label="Formal knowledge" :value="overview?.enabledGroupKnowledge" hint="启用知识" />
       <MetricCard label="Member profiles" :value="overview?.enabledMemberProfiles" hint="启用画像" />
+    </section>
+
+    <section class="panel-grid two">
+      <div class="panel">
+        <div class="panel-title-row">
+          <h3>数据流水线</h3>
+          <span class="panel-subtitle">导入 -> 审核 -> 正式知识 -> embedding</span>
+        </div>
+        <div class="pipeline-grid">
+          <div v-for="item in pipelineSteps" :key="item.label" class="pipeline-step">
+            <span>{{ item.label }}</span>
+            <strong>{{ display(item.value) }}</strong>
+            <small>{{ item.hint }}</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title-row">
+          <h3>常用入口</h3>
+          <span class="panel-subtitle">按日常运维顺序排列</span>
+        </div>
+        <div class="admin-link-grid">
+          <RouterLink v-for="item in adminLinks" :key="item.to" class="admin-link-card" :to="item.to">
+            <span>{{ item.title }}</span>
+            <small>{{ item.description }}</small>
+          </RouterLink>
+        </div>
+      </div>
     </section>
 
     <section class="panel-grid two">
