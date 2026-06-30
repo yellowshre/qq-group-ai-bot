@@ -28,6 +28,12 @@ const router = createRouter({
       meta: { title: '知识库' },
     },
     {
+      path: '/pipeline',
+      name: 'pipeline',
+      component: () => import('@/views/ChatPipelineView.vue'),
+      meta: { title: '数据流水线' },
+    },
+    {
       path: '/member-rank',
       name: 'member-rank',
       component: () => import('@/views/MemberRankView.vue'),

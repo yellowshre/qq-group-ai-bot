@@ -16,6 +16,7 @@
 /admin/groups        群配置编辑器
 /admin/memes         表情包素材管理
 /admin/knowledge     知识候选审批工作台
+/admin/pipeline      聊天数据导入与知识发布流水线
 /admin/member-rank   成员排行查询
 /admin/simulate      群消息模拟与路由调试
 /admin/logs          运行日志诊断
@@ -245,6 +246,25 @@ POST /dev/chat-history/dify-context/simulate
 ```
 
 页面只展示候选内容、证据摘要、正式知识和受控 `knowledgeContext` 预览，不做完整聊天原文浏览。
+
+## 聊天数据流水线
+
+`/admin/pipeline` 是第十阶段数据流的操作编排页，复用已有后端接口，不新增主链路行为：
+
+- 导入 `data/chat-export/` 下的 NapCat-QCE JSON。
+- 根据 `batchId + groupId` 生成候选群梗和候选成员画像。
+- 读取当前筛选条件下 `APPROVED` 候选数量。
+- 发布已审批候选到正式知识库和正式成员画像。
+- 对正式知识 / 成员画像生成 embedding。
+- 用一条模拟消息预览 A/B/C 链路是否会带 `knowledgeContext`，并查看 Dify inputs 结构。
+
+这个页面不会替代 `/admin/knowledge` 的详细审批表格。推荐流程是：先在流水线页导入和生成候选，再到知识库页逐条或批量审批，审批完成后回到流水线页发布、生成 embedding、验证召回。
+
+流水线页仍然不展示完整聊天原文，不返回 SnowLuma token、Dify API Key 或管理员 QQ 明细。导入文件名建议使用英文、数字、下划线，例如：
+
+```text
+data/chat-export/group_251288204_sample_20260628_185926.json
+```
 
 ## 成员排行
 

@@ -752,6 +752,39 @@ textarea {
   gap: 10px 16px;
 }
 
+.pipeline-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pipeline-mini-card {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfbfa;
+}
+
+.pipeline-mini-card span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.pipeline-mini-card strong {
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 780;
+}
+
+.pipeline-mini-card small {
+  color: var(--subtle);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .result-strip {
   display: flex;
   flex-wrap: wrap;
@@ -1302,6 +1335,7 @@ textarea {
     .knowledge-filter,
     .log-filter,
     .simulation-preset-grid,
+    .pipeline-mini-grid,
     .knowledge-tool-grid,
     .context-preview-grid,
   .simulate-layout,

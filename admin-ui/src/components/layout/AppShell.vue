@@ -22,6 +22,7 @@ const navItems = [
   { to: '/groups', label: '群配置', description: '灰度开关', icon: Operation },
   { to: '/memes', label: '表情包', description: '素材路径', icon: Picture },
   { to: '/knowledge', label: '知识库', description: '导入审批', icon: Files },
+  { to: '/pipeline', label: '流水线', description: '导入发布', icon: Files },
   { to: '/member-rank', label: '成员排行', description: '统计查询', icon: ChatDotRound },
   { to: '/simulate', label: '消息模拟', description: '路由调试', icon: ChatDotRound },
   { to: '/logs', label: '运行日志', description: '路由诊断', icon: Tickets },
