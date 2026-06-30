@@ -124,6 +124,8 @@ X-QQBOT-ADMIN-TOKEN
 
 这些信息来自当前 Spring Boot 进程读取到的 env / YAML / 数据库结果，用于确认本地真实联调时到底读到了哪些运维配置。
 
+页面提供“复制诊断摘要”，只复制布尔状态和非敏感摘要，不包含 SnowLuma token、Dify API Key 或管理员 QQ 明细。
+
 ## 群配置编辑器
 
 `/admin/groups` 会读取 `allowedGroupIds` 和数据库里已经存在的 `group_config`，也支持手动输入群号载入默认配置。

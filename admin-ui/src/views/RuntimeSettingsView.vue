@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Refresh } from '@element-plus/icons-vue'
+import { CopyDocument, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 
@@ -17,6 +17,35 @@ const allowedGroups = computed(() => health.value?.oneBot.allowedGroupIds?.join(
 const botAliases = computed(() => health.value?.botIdentity.aliases ?? [])
 const activeChatOffWords = computed(() => health.value?.commandAliases.activeChatOffWords ?? [])
 const activeChatOnWords = computed(() => health.value?.commandAliases.activeChatOnWords ?? [])
+const diagnosticSummary = computed(() => {
+  const value = health.value
+  if (!value) return ''
+  return [
+    'QQbot runtime diagnostics',
+    `profiles=${profiles.value}`,
+    `messageSender=${value.messageSenderType}`,
+    `mysql=${value.mysql.reachable}`,
+    `redis=${value.redis.reachable}`,
+    `onebotWs=${value.oneBot.wsEnabled}`,
+    `onebotSelfIdConfigured=${Boolean(value.oneBot.selfId)}`,
+    `allowedGroups=${allowedGroups.value}`,
+    `difyEnabled=${value.dify.enabled}`,
+    `difyBaseUrlConfigured=${value.dify.baseUrlConfigured}`,
+    `memeSceneWorkflowConfigured=${value.dify.memeSceneWorkflowConfigured}`,
+    `passiveChatWorkflowConfigured=${value.dify.passiveChatWorkflowConfigured}`,
+    `activeChatWorkflowConfigured=${value.dify.activeChatWorkflowConfigured}`,
+    `memeSceneApiKeyConfigured=${value.dify.memeSceneApiKeyConfigured}`,
+    `passiveChatApiKeyConfigured=${value.dify.passiveChatApiKeyConfigured}`,
+    `activeChatApiKeyConfigured=${value.dify.activeChatApiKeyConfigured}`,
+    `memeBaseDir=${value.memeBaseDir}`,
+    `privateAdminEnabled=${value.privateAdmin.enabled}`,
+    `memberRankEnabled=${value.memberRankCommand.enabled}`,
+    `knowledgeContextEnabled=${value.knowledgeContextEnabled}`,
+    value.groupConfig
+      ? `groupConfig=${value.groupConfig.groupId}, bot=${value.groupConfig.botOn}, A=${value.groupConfig.enableMeme}, B=${value.groupConfig.enablePassiveChat}, C=${value.groupConfig.enableAutoJoin}, K=${value.groupConfig.enableKnowledgeContext}`
+      : 'groupConfig=not loaded',
+  ].join('\n')
+})
 const difyWorkflowStatus = computed(() => {
   const dify = health.value?.dify
   if (!dify) return []
@@ -51,6 +80,19 @@ async function loadHealth() {
   }
 }
 
+async function copyDiagnostics() {
+  if (!diagnosticSummary.value) {
+    ElMessage.warning('请先刷新运行配置')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(diagnosticSummary.value)
+    ElMessage.success('诊断摘要已复制，不包含 token 或 api key')
+  } catch {
+    ElMessage.error('复制失败，可以手动查看页面状态')
+  }
+}
+
 onMounted(loadHealth)
 </script>
 
@@ -69,6 +111,7 @@ onMounted(loadHealth)
           clearable
           @keyup.enter="loadHealth"
         />
+        <el-button :icon="CopyDocument" :disabled="!health" @click="copyDiagnostics">复制诊断摘要</el-button>
         <el-button :icon="Refresh" :loading="loading" @click="loadHealth">刷新</el-button>
       </template>
     </PageHeader>
