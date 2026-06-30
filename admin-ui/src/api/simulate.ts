@@ -46,3 +46,23 @@ export interface RouteResult {
 export function simulateGroupMessage(request: SimulateGroupMessageRequest) {
   return apiPost<RouteResult>('/dev/simulate/group-message', request)
 }
+
+export interface SimulatePrivateMessageRequest {
+  userId: string
+  messageId?: string
+  rawMessage: string
+}
+
+export interface PrivateCommandResult {
+  userId: string
+  messageId: string
+  handled: boolean
+  shouldReply: boolean
+  operation?: string | null
+  detail?: string | null
+  outboundMessage?: OutboundMessage | null
+}
+
+export function simulatePrivateMessage(request: SimulatePrivateMessageRequest) {
+  return apiPost<PrivateCommandResult>('/dev/simulate/private-message', request)
+}

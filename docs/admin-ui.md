@@ -19,7 +19,7 @@
 /admin/pipeline      聊天数据导入与知识发布流水线
 /admin/insights      聊天统计趋势与多维排行洞察
 /admin/member-rank   成员排行查询
-/admin/simulate      群消息模拟与路由调试
+/admin/simulate      群消息 / 私聊控制模拟与路由调试
 /admin/logs          运行日志诊断
 /admin/settings      运行配置诊断
 /admin/runbook       运维手册与指令参考
@@ -43,6 +43,7 @@ POST /dev/admin/memes/cache/preheat
 GET /dev/admin/logs/triggers
 GET /dev/admin/logs/admin-ops
 POST /dev/simulate/group-message
+POST /dev/simulate/private-message
 GET /dev/chat-history/member-rank
 POST /dev/chat-history/member-rank
 GET /dev/chat-history/insights
@@ -333,6 +334,7 @@ POST /dev/chat-history/member-rank
 
 ```http
 POST /dev/simulate/group-message
+POST /dev/simulate/private-message
 ```
 
 用于在浏览器里构造一条内部 `BotGroupMessage`，完整经过当前后端路由：
@@ -362,7 +364,18 @@ POST /dev/simulate/group-message
 
 也可以点击“重复上次 messageId”再次发送同一个请求，用来验证 Redis 去重返回 `dedupPassed=false`。
 
-这个接口当前只在 `dev` profile 下启用。真实 `local` SnowLuma 联调主要看 `/admin/logs` 和真实群消息；需要在浏览器里模拟时，用 dev profile 启动后端。
+同一页面还提供“私聊控制”页签，用于模拟管理员私聊机器人时的控制命令，例如：
+
+```text
+#群 251288204 状态
+#群 251288204 开启表情包
+#群 251288204 关闭知识库
+#群 251288204 冷却 300
+```
+
+私聊模拟接口只返回命令解析结果，不会真的调用 `sendPrivateMessage`。如果发送者不在管理员白名单，真实 OneBot 链路会静默忽略；前端模拟结果会显示 `handled=false`、`shouldReply=false`，方便确认权限判断。
+
+模拟接口当前在 `dev` 和 `local` profile 下启用。真实 SnowLuma 联调仍主要看 `/admin/logs` 和真实群消息；浏览器模拟用于本地验证路由和控制命令，不会替代真实 OneBot 收包验收。
 
 ## 开发启动
 
