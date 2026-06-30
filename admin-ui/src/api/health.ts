@@ -28,6 +28,49 @@ export interface AdminUiStatus {
   apiTokenProtected: boolean
 }
 
+export interface AdminAccessStatus {
+  adminsConfigured: boolean
+  adminCount: number
+}
+
+export interface BotIdentityStatus {
+  displayName: string
+  aliases: string[]
+  defaultPersonaConfigured: boolean
+}
+
+export interface CommandAliasStatus {
+  activeChatOffWords: string[]
+  activeChatOnWords: string[]
+  extraActiveChatOffWords: string[]
+  extraActiveChatOnWords: string[]
+}
+
+export interface PrivateAdminReplies {
+  disabled: string
+  groupNotAllowed: string
+  unknownCommand: string
+  success: string
+  statusPrefix: string
+}
+
+export interface PrivateAdminStatus {
+  enabled: boolean
+  limitToAllowedGroups: boolean
+  commandPrefix: string
+  replies: PrivateAdminReplies
+}
+
+export interface MemberRankCommandStatus {
+  enabled: boolean
+  groupCommandEnabled: boolean
+  privateCommandEnabled: boolean
+  adminOnly: boolean
+  defaultTopN: number
+  maxTopN: number
+  commandPrefix: string
+}
+
 export interface KnowledgeContextConfig {
   maxItems: number
   maxLength: number
@@ -65,6 +108,11 @@ export interface FullHealthResponse {
   memeCachePreheatEnabled: boolean
   messageSenderType: string
   adminUi: AdminUiStatus
+  adminAccess: AdminAccessStatus
+  botIdentity: BotIdentityStatus
+  commandAliases: CommandAliasStatus
+  privateAdmin: PrivateAdminStatus
+  memberRankCommand: MemberRankCommandStatus
   sceneDictCount: number | null
   enabledMemeMaterialCount: number | null
   oneBot: OneBotStatus

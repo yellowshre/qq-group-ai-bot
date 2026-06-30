@@ -22,6 +22,7 @@ const groupList = ref<GroupConfigListResponse>({
   allowedGroupIds: [],
   configuredGroups: [],
 })
+const baseline = ref<GroupConfigUpdateRequest | null>(null)
 
 const form = reactive<GroupConfigUpdateRequest>({
   botOn: true,
@@ -51,6 +52,39 @@ const allGroupIds = computed(() => {
 })
 
 const selectedConfigured = computed(() => configuredGroupIds.value.includes(selectedGroupId.value))
+const selectedSourceText = computed(() => (selectedConfigured.value ? '数据库记录' : '默认配置'))
+const diffItems = computed(() => {
+  if (!baseline.value) return []
+  const current = normalizeRequest()
+  return diffFields
+    .map((field) => ({
+      ...field,
+      before: displayValue(baseline.value?.[field.key]),
+      after: displayValue(current[field.key]),
+      changed: !sameValue(baseline.value?.[field.key], current[field.key]),
+    }))
+    .filter((item) => item.changed)
+})
+const isDirty = computed(() => diffItems.value.length > 0)
+
+const diffFields: Array<{ key: keyof GroupConfigUpdateRequest; label: string; group: string }> = [
+  { key: 'botOn', label: '机器人总开关', group: '主链路' },
+  { key: 'enableChat', label: '聊天总开关', group: '主链路' },
+  { key: 'enableMeme', label: '表情包 A', group: '主链路' },
+  { key: 'enablePassiveChat', label: '被动聊天 B', group: '主链路' },
+  { key: 'enableAutoJoin', label: '主动插话 C', group: '主链路' },
+  { key: 'enableKnowledgeContext', label: '知识库总开关', group: '知识库' },
+  { key: 'enableMemeKnowledge', label: '表情包知识', group: '知识库' },
+  { key: 'enablePassiveChatKnowledge', label: '聊天知识', group: '知识库' },
+  { key: 'enableActiveChatKnowledge', label: '主动知识', group: '知识库' },
+  { key: 'activeCooldownSeconds', label: '冷却时间', group: '主动风控' },
+  { key: 'activeMaxPerHour', label: '每小时上限', group: '主动风控' },
+  { key: 'activeMaxPerDay', label: '每日上限', group: '主动风控' },
+  { key: 'memoryMode', label: '记忆模式', group: '记忆' },
+  { key: 'safeWord', label: '安全词', group: '安全词' },
+  { key: 'safeWordReply', label: '安全词回复', group: '安全词' },
+  { key: 'persona', label: '群级人设', group: '人设' },
+]
 
 async function loadList() {
   loading.value = true
@@ -95,6 +129,10 @@ async function save() {
     ElMessage.warning('请先选择或输入群号')
     return
   }
+  if (!isDirty.value) {
+    ElMessage.info('当前没有需要保存的变更')
+    return
+  }
   saving.value = true
   try {
     const saved = await updateGroupConfig(selectedGroupId.value, normalizeRequest())
@@ -129,6 +167,7 @@ function applySnapshot(config: GroupConfigSnapshot) {
   form.enableMemeKnowledge = config.enableMemeKnowledge
   form.enablePassiveChatKnowledge = config.enablePassiveChatKnowledge
   form.enableActiveChatKnowledge = config.enableActiveChatKnowledge
+  baseline.value = snapshotToRequest(config)
 }
 
 function normalizeRequest(): GroupConfigUpdateRequest {
@@ -141,6 +180,37 @@ function normalizeRequest(): GroupConfigUpdateRequest {
     safeWordReply: form.safeWordReply?.trim() || null,
     persona: form.persona?.trim() || null,
   }
+}
+
+function snapshotToRequest(config: GroupConfigSnapshot): GroupConfigUpdateRequest {
+  return {
+    botOn: config.botOn,
+    enableChat: config.enableChat,
+    enableMeme: config.enableMeme,
+    enablePassiveChat: config.enablePassiveChat,
+    enableAutoJoin: config.enableAutoJoin,
+    activeCooldownSeconds: config.activeCooldownSeconds,
+    activeMaxPerHour: config.activeMaxPerHour,
+    activeMaxPerDay: config.activeMaxPerDay,
+    safeWord: config.safeWord?.trim() || null,
+    safeWordReply: config.safeWordReply?.trim() || null,
+    persona: config.persona?.trim() || null,
+    memoryMode: config.memoryMode ?? 'SHORT',
+    enableKnowledgeContext: config.enableKnowledgeContext,
+    enableMemeKnowledge: config.enableMemeKnowledge,
+    enablePassiveChatKnowledge: config.enablePassiveChatKnowledge,
+    enableActiveChatKnowledge: config.enableActiveChatKnowledge,
+  }
+}
+
+function sameValue(left: unknown, right: unknown) {
+  return String(left ?? '') === String(right ?? '')
+}
+
+function displayValue(value: unknown) {
+  if (typeof value === 'boolean') return value ? '开' : '关'
+  if (value === null || value === undefined || value === '') return '空'
+  return String(value)
 }
 
 onMounted(loadList)
@@ -196,11 +266,33 @@ onMounted(loadList)
         <div class="panel-title-row">
           <h3>{{ selectedGroupId ? `群 ${selectedGroupId}` : '未选择群' }}</h3>
           <StatusBadge
-            :label="selectedConfigured ? '数据库记录' : '默认配置'"
+            :label="selectedSourceText"
             :active="selectedConfigured"
             active-text="已存在"
             inactive-text="保存后创建"
           />
+        </div>
+
+        <div class="change-preview">
+          <div class="change-preview-head">
+            <div>
+              <h4>保存前变更预览</h4>
+              <p>{{ isDirty ? `检测到 ${diffItems.length} 项变更` : '当前配置没有未保存变更' }}</p>
+            </div>
+            <el-tag :type="isDirty ? 'warning' : 'success'" effect="plain">
+              {{ isDirty ? '待保存' : '干净' }}
+            </el-tag>
+          </div>
+          <div v-if="diffItems.length" class="change-list">
+            <div v-for="item in diffItems" :key="item.key" class="change-item">
+              <span>{{ item.group }} / {{ item.label }}</span>
+              <strong>
+                <em>{{ item.before }}</em>
+                <b>→</b>
+                <em>{{ item.after }}</em>
+              </strong>
+            </div>
+          </div>
         </div>
 
         <el-form label-position="top" class="config-form">

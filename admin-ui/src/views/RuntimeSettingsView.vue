@@ -14,6 +14,9 @@ const health = ref<FullHealthResponse | null>(null)
 
 const profiles = computed(() => health.value?.activeProfiles?.join(', ') || '-')
 const allowedGroups = computed(() => health.value?.oneBot.allowedGroupIds?.join(', ') || '-')
+const botAliases = computed(() => health.value?.botIdentity.aliases ?? [])
+const activeChatOffWords = computed(() => health.value?.commandAliases.activeChatOffWords ?? [])
+const activeChatOnWords = computed(() => health.value?.commandAliases.activeChatOnWords ?? [])
 const difyWorkflowStatus = computed(() => {
   const dify = health.value?.dify
   if (!dify) return []
@@ -23,6 +26,10 @@ const difyWorkflowStatus = computed(() => {
     { label: 'C workflow', active: dify.activeChatWorkflowConfigured },
   ]
 })
+
+function listText(values?: string[]) {
+  return values?.length ? values.join(' / ') : '-'
+}
 const difyKeyStatus = computed(() => {
   const dify = health.value?.dify
   if (!dify) return []
@@ -189,6 +196,77 @@ onMounted(loadHealth)
         <StatusBadge label="Token 开关" :active="health?.adminUi.apiTokenEnabled" />
         <StatusBadge label="Token 已配置" :active="health?.adminUi.apiTokenConfigured" />
         <StatusBadge label="/dev/* 保护" :active="health?.adminUi.apiTokenProtected" />
+      </div>
+    </section>
+
+    <section class="panel-grid two">
+      <div class="panel">
+        <div class="panel-title-row">
+          <h3>身份与群内指令</h3>
+          <span class="panel-subtitle">env 读取结果，只读展示</span>
+        </div>
+        <div class="settings-list">
+          <StatusBadge label="管理员白名单" :active="health?.adminAccess.adminsConfigured" />
+          <StatusBadge label="默认人设" :active="health?.botIdentity.defaultPersonaConfigured" />
+        </div>
+        <div class="settings-kv command-kv">
+          <span>管理员数量</span>
+          <strong>{{ health?.adminAccess.adminCount ?? 0 }}</strong>
+          <span>机器人显示名</span>
+          <strong>{{ health?.botIdentity.displayName || '-' }}</strong>
+          <span>昵称触发词</span>
+          <strong>{{ listText(botAliases) }}</strong>
+          <span>主动插话关闭词</span>
+          <strong>{{ listText(activeChatOffWords) }}</strong>
+          <span>主动插话开启词</span>
+          <strong>{{ listText(activeChatOnWords) }}</strong>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title-row">
+          <h3>私聊控制</h3>
+          <span class="panel-subtitle">不显示管理员 QQ 号</span>
+        </div>
+        <div class="settings-list">
+          <StatusBadge label="私聊控制开关" :active="health?.privateAdmin.enabled" />
+          <StatusBadge label="限制白名单群" :active="health?.privateAdmin.limitToAllowedGroups" />
+        </div>
+        <div class="settings-kv command-kv">
+          <span>指令前缀</span>
+          <strong>{{ health?.privateAdmin.commandPrefix || '#' }}</strong>
+          <span>关闭时回复</span>
+          <strong>{{ health?.privateAdmin.replies.disabled || '-' }}</strong>
+          <span>群不允许回复</span>
+          <strong>{{ health?.privateAdmin.replies.groupNotAllowed || '-' }}</strong>
+          <span>未知指令回复</span>
+          <strong>{{ health?.privateAdmin.replies.unknownCommand || '-' }}</strong>
+          <span>成功回复</span>
+          <strong>{{ health?.privateAdmin.replies.success || '-' }}</strong>
+          <span>状态前缀</span>
+          <strong>{{ health?.privateAdmin.replies.statusPrefix || '-' }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title-row">
+        <h3>排行指令</h3>
+        <span class="panel-subtitle">群内和私聊的公开排行查询开关</span>
+      </div>
+      <div class="settings-list">
+        <StatusBadge label="排行模块" :active="health?.memberRankCommand.enabled" />
+        <StatusBadge label="群内指令" :active="health?.memberRankCommand.groupCommandEnabled" />
+        <StatusBadge label="私聊指令" :active="health?.memberRankCommand.privateCommandEnabled" />
+        <StatusBadge label="仅管理员" :active="health?.memberRankCommand.adminOnly" />
+      </div>
+      <div class="settings-kv">
+        <span>指令前缀</span>
+        <strong>{{ health?.memberRankCommand.commandPrefix || '#排行' }}</strong>
+        <span>默认 TopN</span>
+        <strong>{{ health?.memberRankCommand.defaultTopN ?? '-' }}</strong>
+        <span>最大 TopN</span>
+        <strong>{{ health?.memberRankCommand.maxTopN ?? '-' }}</strong>
       </div>
     </section>
 

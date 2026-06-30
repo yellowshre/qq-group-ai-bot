@@ -5,8 +5,11 @@ import com.yh.qqbot.config.properties.QqBotProperties;
 import com.yh.qqbot.dto.DevFullHealthResponse;
 import com.yh.qqbot.dto.GroupConfigSnapshot;
 import com.yh.qqbot.service.config.GroupConfigService;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
@@ -58,6 +61,11 @@ public class HealthCheckController {
                 properties.getMeme().isCachePreheatEnabled(),
                 messageSender.getClass().getSimpleName(),
                 adminUiStatus(),
+                adminAccessStatus(),
+                botIdentityStatus(),
+                commandAliasStatus(),
+                privateAdminStatus(),
+                memberRankCommandStatus(),
                 sceneCount.value(),
                 enabledMemeCount.value(),
                 oneBotStatus(),
@@ -122,6 +130,59 @@ public class HealthCheckController {
                 adminUi.isApiTokenEnabled() && tokenConfigured);
     }
 
+    private DevFullHealthResponse.AdminAccessStatus adminAccessStatus() {
+        Set<String> admins = splitValues(properties.getAdmins());
+        return new DevFullHealthResponse.AdminAccessStatus(!admins.isEmpty(), admins.size());
+    }
+
+    private DevFullHealthResponse.BotIdentityStatus botIdentityStatus() {
+        QqBotProperties.Identity identity = properties.getIdentity();
+        String persona = identity.getDefaultPersona();
+        return new DevFullHealthResponse.BotIdentityStatus(
+                identity.getDisplayName(),
+                cleanValues(identity.getAliases()),
+                hasText(persona));
+    }
+
+    private DevFullHealthResponse.CommandAliasStatus commandAliasStatus() {
+        List<String> safetyOffWords = cleanValues(properties.getSafety().getActiveChatOffWords());
+        List<String> safetyOnWords = cleanValues(properties.getSafety().getActiveChatOnWords());
+        List<String> extraOffWords = cleanValues(properties.getCommandAliases().getActiveChatOffWords());
+        List<String> extraOnWords = cleanValues(properties.getCommandAliases().getActiveChatOnWords());
+        return new DevFullHealthResponse.CommandAliasStatus(
+                merge(safetyOffWords, extraOffWords),
+                merge(safetyOnWords, extraOnWords),
+                extraOffWords,
+                extraOnWords);
+    }
+
+    private DevFullHealthResponse.PrivateAdminStatus privateAdminStatus() {
+        QqBotProperties.PrivateAdmin privateAdmin = properties.getPrivateAdmin();
+        QqBotProperties.Replies replies = privateAdmin.getReplies();
+        return new DevFullHealthResponse.PrivateAdminStatus(
+                privateAdmin.isEnabled(),
+                privateAdmin.isLimitToAllowedGroups(),
+                hasText(privateAdmin.getCommandPrefix()) ? privateAdmin.getCommandPrefix() : "#",
+                new DevFullHealthResponse.PrivateAdminReplies(
+                        replies.getDisabled(),
+                        replies.getGroupNotAllowed(),
+                        replies.getUnknownCommand(),
+                        replies.getSuccess(),
+                        replies.getStatusPrefix()));
+    }
+
+    private DevFullHealthResponse.MemberRankCommandStatus memberRankCommandStatus() {
+        QqBotProperties.MemberRank memberRank = properties.getMemberRank();
+        return new DevFullHealthResponse.MemberRankCommandStatus(
+                memberRank.isEnabled(),
+                memberRank.isGroupCommandEnabled(),
+                memberRank.isPrivateCommandEnabled(),
+                memberRank.isAdminOnly(),
+                memberRank.getDefaultTopN(),
+                memberRank.getMaxTopN(),
+                memberRank.getCommandPrefix());
+    }
+
     private DevFullHealthResponse.DifyStatus difyStatus() {
         QqBotProperties.Dify dify = properties.getDify();
         return new DevFullHealthResponse.DifyStatus(
@@ -163,6 +224,35 @@ public class HealthCheckController {
             cursor = cursor.getCause();
         }
         return cursor.getMessage();
+    }
+
+    private List<String> merge(List<String> first, List<String> second) {
+        Set<String> result = new LinkedHashSet<>();
+        result.addAll(first);
+        result.addAll(second);
+        return new ArrayList<>(result);
+    }
+
+    private List<String> cleanValues(List<String> values) {
+        return new ArrayList<>(splitValues(values));
+    }
+
+    private Set<String> splitValues(List<String> values) {
+        Set<String> result = new LinkedHashSet<>();
+        if (values == null) {
+            return result;
+        }
+        for (String value : values) {
+            if (!hasText(value)) {
+                continue;
+            }
+            for (String part : value.split(",")) {
+                if (hasText(part)) {
+                    result.add(part.strip());
+                }
+            }
+        }
+        return result;
     }
 
     private boolean hasText(String value) {

@@ -373,6 +373,16 @@ textarea {
   word-break: break-all;
 }
 
+.settings-kv.command-kv {
+  grid-template-columns: minmax(140px, 0.38fr) minmax(0, 1fr);
+}
+
+.settings-kv.command-kv strong {
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -805,6 +815,74 @@ textarea {
 .config-form {
   display: grid;
   gap: 18px;
+}
+
+.change-preview {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfbfa;
+}
+
+.change-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.change-preview h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 780;
+}
+
+.change-preview p {
+  margin: 5px 0 0;
+  color: var(--subtle);
+  font-size: 12px;
+}
+
+.change-list {
+  display: grid;
+  gap: 8px;
+}
+
+.change-item {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.45fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.change-item span {
+  color: var(--subtle);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.change-item strong {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.change-item em {
+  max-width: 100%;
+  font-style: normal;
+  word-break: break-word;
+}
+
+.change-item b {
+  color: var(--subtle);
 }
 
 .form-section {
