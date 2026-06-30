@@ -95,6 +95,8 @@ const approvedKnowledgeIds = computed(() =>
 const approvedMemberIds = computed(() =>
   selectedMembers.value.filter((item) => item.status === 'APPROVED').map((item) => item.id),
 )
+const selectedKnowledgeIds = computed(() => selectedKnowledge.value.map((item) => item.id))
+const selectedMemberIds = computed(() => selectedMembers.value.map((item) => item.id))
 
 async function loadAll() {
   loading.value = true
@@ -170,10 +172,40 @@ async function reviewKnowledge(item: KnowledgeCandidate, status: CandidateStatus
   })
 }
 
+async function batchReviewKnowledge(status: CandidateStatus) {
+  const ids = selectedKnowledgeIds.value
+  if (ids.length === 0) {
+    ElMessage.warning('请先选择候选知识')
+    return
+  }
+  await runAction(async () => {
+    for (const id of ids) {
+      await reviewKnowledgeCandidate(id, status, reviewer(), comment())
+    }
+    ElMessage.success(`${status === 'APPROVED' ? '通过' : '拒绝'}候选知识 ${ids.length} 条`)
+    await loadAll()
+  })
+}
+
 async function reviewMember(item: MemberCandidate, status: CandidateStatus) {
   await runAction(async () => {
     await reviewMemberCandidate(item.id, status, reviewer(), comment())
     ElMessage.success(status === 'APPROVED' ? '成员候选已通过' : '成员候选已拒绝')
+    await loadAll()
+  })
+}
+
+async function batchReviewMembers(status: CandidateStatus) {
+  const ids = selectedMemberIds.value
+  if (ids.length === 0) {
+    ElMessage.warning('请先选择成员候选')
+    return
+  }
+  await runAction(async () => {
+    for (const id of ids) {
+      await reviewMemberCandidate(id, status, reviewer(), comment())
+    }
+    ElMessage.success(`${status === 'APPROVED' ? '通过' : '拒绝'}成员候选 ${ids.length} 条`)
     await loadAll()
   })
 }
@@ -421,14 +453,34 @@ onMounted(loadAll)
             <span class="panel-subtitle">
               已选 {{ selectedKnowledge.length }} 条，通过后才可发布为正式知识。
             </span>
-            <el-button
-              type="primary"
-              :disabled="approvedKnowledgeIds.length === 0"
-              :loading="acting"
-              @click="publishSelectedKnowledge"
-            >
-              发布已通过候选
-            </el-button>
+            <div class="table-actions">
+              <el-button
+                type="success"
+                plain
+                :disabled="selectedKnowledgeIds.length === 0"
+                :loading="acting"
+                @click="batchReviewKnowledge('APPROVED')"
+              >
+                批量通过
+              </el-button>
+              <el-button
+                type="danger"
+                plain
+                :disabled="selectedKnowledgeIds.length === 0"
+                :loading="acting"
+                @click="batchReviewKnowledge('REJECTED')"
+              >
+                批量拒绝
+              </el-button>
+              <el-button
+                type="primary"
+                :disabled="approvedKnowledgeIds.length === 0"
+                :loading="acting"
+                @click="publishSelectedKnowledge"
+              >
+                发布已通过候选
+              </el-button>
+            </div>
           </div>
           <el-table
             v-if="knowledgeCandidates.length"
@@ -478,14 +530,34 @@ onMounted(loadAll)
             <span class="panel-subtitle">
               已选 {{ selectedMembers.length }} 条，通过后可发布为正式成员画像。
             </span>
-            <el-button
-              type="primary"
-              :disabled="approvedMemberIds.length === 0"
-              :loading="acting"
-              @click="publishSelectedMembers"
-            >
-              发布已通过画像
-            </el-button>
+            <div class="table-actions">
+              <el-button
+                type="success"
+                plain
+                :disabled="selectedMemberIds.length === 0"
+                :loading="acting"
+                @click="batchReviewMembers('APPROVED')"
+              >
+                批量通过
+              </el-button>
+              <el-button
+                type="danger"
+                plain
+                :disabled="selectedMemberIds.length === 0"
+                :loading="acting"
+                @click="batchReviewMembers('REJECTED')"
+              >
+                批量拒绝
+              </el-button>
+              <el-button
+                type="primary"
+                :disabled="approvedMemberIds.length === 0"
+                :loading="acting"
+                @click="publishSelectedMembers"
+              >
+                发布已通过画像
+              </el-button>
+            </div>
           </div>
           <el-table
             v-if="memberCandidates.length"

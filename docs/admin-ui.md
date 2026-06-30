@@ -193,6 +193,8 @@ comfort/comfort_001.jpg
 - 搜索正式知识，验证向量召回结果。
 - 预览单条消息在 A/B/C 链路上的 `knowledgeContext` 和 Dify inputs。
 
+候选群梗和候选成员画像支持多选后批量通过、批量拒绝；发布仍只会发布状态为 `APPROVED` 的候选，避免误把未审核内容推到正式知识库。
+
 对应接口：
 
 ```http
