@@ -33,27 +33,34 @@ export function setAdminApiToken(token: string) {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(path, {
+  return request<T>(() => fetch(path, {
     headers: requestHeaders(),
-  })
-  return parseResponse<T>(response)
+  }))
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(path, {
+  return request<T>(() => fetch(path, {
     method: 'POST',
     headers: requestHeaders(true),
     body: JSON.stringify(body),
-  })
-  return parseResponse<T>(response)
+  }))
 }
 
 export async function apiPut<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(path, {
+  return request<T>(() => fetch(path, {
     method: 'PUT',
     headers: requestHeaders(true),
     body: JSON.stringify(body),
-  })
+  }))
+}
+
+async function request<T>(factory: () => Promise<Response>): Promise<T> {
+  let response: Response
+  try {
+    response = await factory()
+  } catch (error) {
+    throw new ApiError(networkErrorMessage(error), undefined, 'NETWORK_ERROR')
+  }
   return parseResponse<T>(response)
 }
 
@@ -105,7 +112,17 @@ function errorMessage(response: Response, body: unknown, envelope: ApiEnvelope<u
   if (typeof body === 'string' && body.trim()) {
     return body
   }
+  if (response.status === 500) {
+    return '后端接口不可用或返回 500，请确认 Spring Boot dev/local profile 是否已启动并查看后端日志'
+  }
   return `Request failed: ${response.status}`
+}
+
+function networkErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return `后端接口请求失败：${error.message}`
+  }
+  return '后端接口请求失败，请确认 Spring Boot dev/local profile 是否已启动'
 }
 
 function asEnvelope<T>(body: unknown): ApiEnvelope<T> | null {
