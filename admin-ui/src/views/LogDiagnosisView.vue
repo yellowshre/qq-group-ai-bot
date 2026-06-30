@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 
 import {
   listAdminOpLogs,
@@ -10,13 +10,14 @@ import {
   type TriggerLogItem,
 } from '@/api/logs'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { readLastGroupId, rememberLastGroupId } from '@/composables/useAdminPreferences'
 
 const activeTab = ref('triggers')
 const loading = ref(false)
 const triggerLogs = ref<TriggerLogItem[]>([])
 const adminOps = ref<AdminOpLogItem[]>([])
 const triggerFilter = reactive({
-  groupId: '',
+  groupId: readLastGroupId(),
   userId: '',
   messageId: '',
   responseType: '',
@@ -25,11 +26,14 @@ const triggerFilter = reactive({
   limit: 100,
 })
 const adminFilter = reactive({
-  groupId: '',
+  groupId: readLastGroupId(),
   operatorUid: '',
   operation: '',
   limit: 100,
 })
+
+watch(() => triggerFilter.groupId, rememberLastGroupId)
+watch(() => adminFilter.groupId, rememberLastGroupId)
 
 const responseTypeOptions = ['SILENT', 'COMMAND', 'MEME', 'PASSIVE_CHAT', 'ACTIVE_CHAT', 'SAFE_WORD']
 const workflowOptions = ['MEME_KEYWORD', 'MEME_DIFY_SCENE', 'PASSIVE_DIFY_CHAT', 'ACTIVE_DIFY_CHAT']

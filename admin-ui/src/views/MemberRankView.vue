@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { CopyDocument, Download, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { getMemberRank, type MemberRankResponse } from '@/api/memberRank'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { readLastGroupId, rememberLastGroupId } from '@/composables/useAdminPreferences'
 
 const loading = ref(false)
 const result = ref<MemberRankResponse | null>(null)
 const form = ref({
-  groupId: '',
+  groupId: readLastGroupId(),
   batchId: '',
   rankType: 'MESSAGE',
   startDate: '',
   endDate: '',
   topN: 5,
 })
+
+watch(() => form.value.groupId, rememberLastGroupId)
 
 const rankOptions = [
   { label: '发言数', value: 'MESSAGE', hint: 'clean message 统计，最适合看群内活跃度' },

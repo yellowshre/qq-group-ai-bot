@@ -8,11 +8,12 @@ import { getAdminOverview, type AdminOverviewResponse } from '@/api/overview'
 import MetricCard from '@/components/common/MetricCard.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import { useLastGroupId } from '@/composables/useAdminPreferences'
 
 const loading = ref(false)
 const health = ref<FullHealthResponse | null>(null)
 const overview = ref<AdminOverviewResponse | null>(null)
-const groupId = ref('')
+const groupId = useLastGroupId()
 
 const profiles = computed(() => health.value?.activeProfiles?.join(', ') ?? '-')
 const keyStatus = computed(() => {

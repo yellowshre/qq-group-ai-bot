@@ -135,6 +135,15 @@ X-QQBOT-ADMIN-TOKEN
 
 页面提供“复制诊断摘要”，只复制布尔状态和非敏感摘要，不包含 SnowLuma token、Dify API Key 或管理员 QQ 明细。
 
+## 本地偏好
+
+控制台会把最近使用的 `groupId` 和操作人保存在浏览器 `localStorage` 中：
+
+- `qqbot.admin.lastGroupId`
+- `qqbot.admin.lastOperator`
+
+这样在总览、群配置、知识库、流水线、洞察、排行、模拟、日志和运行配置页面之间切换时，会自动带入上次使用的群号；知识库和流水线里的操作人 / reviewer 也会自动复用。这个偏好只存在当前浏览器，不会写入后端数据库，也不会写入 `.env` 或 Git。
+
 ## 运维手册
 
 `/admin/runbook` 是前端里的本地速查表：

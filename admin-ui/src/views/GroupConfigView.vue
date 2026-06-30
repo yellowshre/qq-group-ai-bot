@@ -13,11 +13,12 @@ import {
 import type { GroupConfigSnapshot } from '@/api/health'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import { rememberLastGroupId, useLastGroupId } from '@/composables/useAdminPreferences'
 
 const loading = ref(false)
 const saving = ref(false)
-const inputGroupId = ref('')
-const selectedGroupId = ref('')
+const inputGroupId = useLastGroupId()
+const selectedGroupId = ref(inputGroupId.value)
 const groupList = ref<GroupConfigListResponse>({
   allowedGroupIds: [],
   configuredGroups: [],
@@ -98,7 +99,10 @@ async function loadList() {
   loading.value = true
   try {
     groupList.value = await listGroupConfigs()
-    if (!selectedGroupId.value && allGroupIds.value.length > 0) {
+    const preferredGroupId = selectedGroupId.value || inputGroupId.value
+    if (preferredGroupId) {
+      await selectGroup(preferredGroupId)
+    } else if (allGroupIds.value.length > 0) {
       await selectGroup(allGroupIds.value[0])
     }
   } catch (error) {
@@ -112,6 +116,7 @@ async function selectGroup(groupId: string) {
   if (!groupId) return
   selectedGroupId.value = groupId
   inputGroupId.value = groupId
+  rememberLastGroupId(groupId)
   loading.value = true
   try {
     const config = await getGroupConfig(groupId)

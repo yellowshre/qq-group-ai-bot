@@ -1,22 +1,25 @@
 <script setup lang="ts">
 import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { getChatHistoryInsights, type ChatHistoryInsightResponse, type DailyActivity } from '@/api/insights'
 import { getMemberRank, type MemberRankResponse } from '@/api/memberRank'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { readLastGroupId, rememberLastGroupId } from '@/composables/useAdminPreferences'
 
 const loading = ref(false)
 const result = ref<ChatHistoryInsightResponse | null>(null)
 const rankResults = ref<MemberRankResponse[]>([])
 const form = ref({
-  groupId: '',
+  groupId: readLastGroupId(),
   batchId: '',
   startDate: '',
   endDate: '',
   topN: 5,
 })
+
+watch(() => form.value.groupId, rememberLastGroupId)
 
 const rankTypes = ['MESSAGE', 'REPLY', 'REPLIED_BY', 'MENTION', 'SESSION']
 

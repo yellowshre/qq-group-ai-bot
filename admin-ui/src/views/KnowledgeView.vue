@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import {
   createManualKnowledgeCandidate,
@@ -40,16 +40,22 @@ import {
   type ReviewLogItem,
 } from '@/api/knowledge'
 import PageHeader from '@/components/common/PageHeader.vue'
+import {
+  readLastGroupId,
+  readLastOperator,
+  rememberLastGroupId,
+  rememberLastOperator,
+} from '@/composables/useAdminPreferences'
 
 const activeTab = ref('knowledge-candidates')
 const loading = ref(false)
 const acting = ref(false)
 const filter = ref({
-  groupId: '',
+  groupId: readLastGroupId(),
   batchId: '',
   filePath: '',
   status: 'PENDING',
-  reviewer: 'local-admin',
+  reviewer: readLastOperator(),
   comment: '',
 })
 
@@ -87,6 +93,9 @@ const contextForm = ref({
   targetTypes: ['GROUP_KNOWLEDGE', 'MEMBER_PROFILE'],
   regenerate: false,
 })
+
+watch(() => filter.value.groupId, rememberLastGroupId)
+watch(() => filter.value.reviewer, rememberLastOperator)
 
 const statusOptions = [
   { label: '待审批', value: 'PENDING' },

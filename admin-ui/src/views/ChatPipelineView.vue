@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 
 import {
   generateCandidates,
@@ -30,6 +30,12 @@ import {
 } from '@/api/knowledge'
 import { getAdminOverview, type AdminOverviewResponse } from '@/api/overview'
 import PageHeader from '@/components/common/PageHeader.vue'
+import {
+  readLastGroupId,
+  readLastOperator,
+  rememberLastGroupId,
+  rememberLastOperator,
+} from '@/composables/useAdminPreferences'
 
 const loading = ref(false)
 const acting = ref(false)
@@ -47,10 +53,10 @@ const routePreview = ref<KnowledgeRoutePreviewResponse | null>(null)
 const difyPreview = ref<DifyContextSimulateResponse | null>(null)
 
 const form = ref({
-  groupId: '',
+  groupId: readLastGroupId(),
   filePath: 'data/chat-export/group_251288204_sample_20260628_185926.json',
   batchId: '',
-  operator: 'local-admin',
+  operator: readLastOperator(),
   comment: '',
   batchStatus: '',
   batchLimit: 20,
@@ -66,6 +72,9 @@ const form = ref({
   embeddingStatus: '',
   embeddingTargetType: '',
 })
+
+watch(() => form.value.groupId, rememberLastGroupId)
+watch(() => form.value.operator, rememberLastOperator)
 
 const routeOptions = [
   { label: '表情包 A', value: 'MEME' },

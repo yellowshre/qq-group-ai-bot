@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 import {
   simulatePrivateMessage,
@@ -13,6 +13,7 @@ import {
 } from '@/api/simulate'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import { readLastGroupId, rememberLastGroupId } from '@/composables/useAdminPreferences'
 
 const activeTab = ref('group')
 const loading = ref(false)
@@ -23,7 +24,7 @@ const lastRequest = ref<SimulateGroupMessageRequest | null>(null)
 const privateLastRequest = ref<SimulatePrivateMessageRequest | null>(null)
 
 const form = reactive<SimulateGroupMessageRequest>({
-  groupId: '',
+  groupId: readLastGroupId(),
   userId: '',
   messageId: newMessageId(),
   rawMessage: '',
@@ -31,11 +32,14 @@ const form = reactive<SimulateGroupMessageRequest>({
   botNicknameMatched: false,
 })
 const privateForm = reactive({
-  targetGroupId: '',
+  targetGroupId: readLastGroupId(),
   userId: '',
   messageId: newPrivateMessageId(),
   rawMessage: '',
 })
+
+watch(() => form.groupId, rememberLastGroupId)
+watch(() => privateForm.targetGroupId, rememberLastGroupId)
 
 const presets = [
   {

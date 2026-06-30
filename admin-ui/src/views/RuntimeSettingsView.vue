@@ -7,9 +7,10 @@ import { getFullHealth, type FullHealthResponse } from '@/api/health'
 import MetricCard from '@/components/common/MetricCard.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import { useLastGroupId } from '@/composables/useAdminPreferences'
 
 const loading = ref(false)
-const groupId = ref('')
+const groupId = useLastGroupId()
 const health = ref<FullHealthResponse | null>(null)
 
 const profiles = computed(() => health.value?.activeProfiles?.join(', ') || '-')
