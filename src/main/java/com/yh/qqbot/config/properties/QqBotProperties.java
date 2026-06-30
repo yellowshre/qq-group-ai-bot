@@ -29,6 +29,8 @@ public class QqBotProperties {
     @NotNull
     private PrivateAdmin privateAdmin = new PrivateAdmin();
     @NotNull
+    private AdminUi adminUi = new AdminUi();
+    @NotNull
     private PassiveChat passiveChat = new PassiveChat();
     @NotNull
     private ActiveChat activeChat = new ActiveChat();
@@ -123,6 +125,14 @@ public class QqBotProperties {
 
     public void setPrivateAdmin(PrivateAdmin privateAdmin) {
         this.privateAdmin = privateAdmin == null ? new PrivateAdmin() : privateAdmin;
+    }
+
+    public AdminUi getAdminUi() {
+        return adminUi;
+    }
+
+    public void setAdminUi(AdminUi adminUi) {
+        this.adminUi = adminUi == null ? new AdminUi() : adminUi;
     }
 
     public PassiveChat getPassiveChat() {
@@ -349,6 +359,27 @@ public class QqBotProperties {
 
         public void setReplies(Replies replies) {
             this.replies = replies == null ? new Replies() : replies;
+        }
+    }
+
+    public static class AdminUi {
+        private boolean apiTokenEnabled = false;
+        private String apiToken = "";
+
+        public boolean isApiTokenEnabled() {
+            return apiTokenEnabled;
+        }
+
+        public void setApiTokenEnabled(boolean apiTokenEnabled) {
+            this.apiTokenEnabled = apiTokenEnabled;
+        }
+
+        public String getApiToken() {
+            return apiToken;
+        }
+
+        public void setApiToken(String apiToken) {
+            this.apiToken = apiToken == null ? "" : apiToken;
         }
     }
 

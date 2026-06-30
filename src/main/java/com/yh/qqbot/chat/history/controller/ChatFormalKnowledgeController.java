@@ -9,16 +9,11 @@ import com.yh.qqbot.chat.history.dto.KnowledgeSearchResponse;
 import com.yh.qqbot.chat.history.dto.KnowledgeStatusChangeRequest;
 import com.yh.qqbot.chat.history.entity.ChatGroupKnowledgeEntity;
 import com.yh.qqbot.chat.history.entity.ChatMemberProfileEntity;
-import com.yh.qqbot.chat.history.service.InvalidChatCandidateRequestException;
 import com.yh.qqbot.chat.history.service.formal.FormalKnowledgeService;
 import com.yh.qqbot.chat.history.service.vector.KnowledgeEmbeddingService;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -106,12 +101,6 @@ public class ChatFormalKnowledgeController {
     public KnowledgeSearchResponse searchKnowledge(
             @Valid @RequestBody KnowledgeSearchRequest request) {
         return knowledgeEmbeddingService.search(request);
-    }
-
-    @ExceptionHandler(InvalidChatCandidateRequestException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCandidateRequest(InvalidChatCandidateRequestException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("success", false, "message", ex.getMessage()));
     }
 
     private String operator(KnowledgeStatusChangeRequest request) {

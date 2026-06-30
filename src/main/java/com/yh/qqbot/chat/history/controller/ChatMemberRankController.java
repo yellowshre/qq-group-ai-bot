@@ -2,16 +2,11 @@ package com.yh.qqbot.chat.history.controller;
 
 import com.yh.qqbot.chat.history.dto.ChatMemberRankRequest;
 import com.yh.qqbot.chat.history.dto.ChatMemberRankResponse;
-import com.yh.qqbot.chat.history.service.InvalidChatCandidateRequestException;
 import com.yh.qqbot.chat.history.service.rank.ChatMemberRankService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
-import java.util.Map;
 import org.springframework.context.annotation.Profile;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,11 +39,5 @@ public class ChatMemberRankController {
     @PostMapping("/member-rank")
     public ChatMemberRankResponse rank(@Valid @RequestBody ChatMemberRankRequest request) {
         return rankService.rank(request);
-    }
-
-    @ExceptionHandler(InvalidChatCandidateRequestException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCandidateRequest(InvalidChatCandidateRequestException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("success", false, "message", ex.getMessage()));
     }
 }

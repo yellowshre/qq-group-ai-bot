@@ -57,6 +57,7 @@ public class HealthCheckController {
                 properties.getDify().isEnabled(),
                 properties.getMeme().isCachePreheatEnabled(),
                 messageSender.getClass().getSimpleName(),
+                adminUiStatus(),
                 sceneCount.value(),
                 enabledMemeCount.value(),
                 oneBotStatus(),
@@ -110,6 +111,15 @@ public class HealthCheckController {
                 properties.getOnebot().getWs().isEnabled(),
                 properties.getOnebot().getSelfId(),
                 properties.getOnebot().getAllowedGroupIds());
+    }
+
+    private DevFullHealthResponse.AdminUiStatus adminUiStatus() {
+        QqBotProperties.AdminUi adminUi = properties.getAdminUi();
+        boolean tokenConfigured = hasText(adminUi.getApiToken());
+        return new DevFullHealthResponse.AdminUiStatus(
+                adminUi.isApiTokenEnabled(),
+                tokenConfigured,
+                adminUi.isApiTokenEnabled() && tokenConfigured);
     }
 
     private DevFullHealthResponse.DifyStatus difyStatus() {

@@ -9,18 +9,13 @@ import com.yh.qqbot.chat.history.dto.KnowledgeRoutePreviewRequest;
 import com.yh.qqbot.chat.history.dto.KnowledgeRoutePreviewResponse;
 import com.yh.qqbot.chat.history.dto.KnowledgeRouteType;
 import com.yh.qqbot.chat.history.dto.RouteKnowledgePreview;
-import com.yh.qqbot.chat.history.service.InvalidChatCandidateRequestException;
 import com.yh.qqbot.chat.history.service.context.KnowledgeContextService;
 import com.yh.qqbot.dto.GroupConfigSnapshot;
 import com.yh.qqbot.service.config.GroupConfigService;
 import jakarta.validation.Valid;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -109,11 +104,5 @@ public class ChatKnowledgeContextController {
             case PASSIVE_CHAT -> config.enablePassiveChatKnowledge();
             case ACTIVE_CHAT -> config.enableActiveChatKnowledge();
         };
-    }
-
-    @ExceptionHandler(InvalidChatCandidateRequestException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCandidateRequest(InvalidChatCandidateRequestException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("success", false, "message", ex.getMessage()));
     }
 }

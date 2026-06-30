@@ -34,5 +34,10 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+### Admin UI ###
+admin-ui/node_modules/
+admin-ui/dist/
+admin-ui/.npm-cache/
+
 ### VS Code ###
 .vscode/

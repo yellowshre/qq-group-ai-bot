@@ -8,18 +8,13 @@ import com.yh.qqbot.chat.history.dto.ManualKnowledgeCandidateResponse;
 import com.yh.qqbot.chat.history.entity.ChatKnowledgeCandidateEntity;
 import com.yh.qqbot.chat.history.entity.ChatKnowledgeReviewLogEntity;
 import com.yh.qqbot.chat.history.entity.ChatMemberCandidateEntity;
-import com.yh.qqbot.chat.history.service.InvalidChatCandidateRequestException;
 import com.yh.qqbot.chat.history.service.candidate.ChatCandidateQueryService;
 import com.yh.qqbot.chat.history.service.candidate.ChatKnowledgeCandidateGenerationService;
 import com.yh.qqbot.chat.history.service.candidate.ManualKnowledgeCandidateService;
 import com.yh.qqbot.chat.history.service.review.ChatKnowledgeReviewService;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.Map;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -95,11 +90,5 @@ public class ChatKnowledgeCandidateController {
             @RequestParam(required = false) String targetType,
             @RequestParam(required = false) Long targetId) {
         return reviewService.findReviewLogs(targetType, targetId);
-    }
-
-    @ExceptionHandler(InvalidChatCandidateRequestException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCandidateRequest(InvalidChatCandidateRequestException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("success", false, "message", ex.getMessage()));
     }
 }

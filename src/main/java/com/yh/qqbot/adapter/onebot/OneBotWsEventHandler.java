@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 public class OneBotWsEventHandler {
 
     private static final Logger log = LoggerFactory.getLogger(OneBotWsEventHandler.class);
-
     private final OneBotWsEventParser eventParser;
     private final OneBotInboundAdapter inboundAdapter;
     private final PrivateAdminCommandService privateAdminCommandService;

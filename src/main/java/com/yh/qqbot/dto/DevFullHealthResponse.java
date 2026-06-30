@@ -9,6 +9,7 @@ public record DevFullHealthResponse(
         boolean difyEnabled,
         boolean memeCachePreheatEnabled,
         String messageSenderType,
+        AdminUiStatus adminUi,
         Long sceneDictCount,
         Long enabledMemeMaterialCount,
         OneBotStatus oneBot,
@@ -30,6 +31,12 @@ public record DevFullHealthResponse(
             boolean wsEnabled,
             String selfId,
             List<String> allowedGroupIds) {
+    }
+
+    public record AdminUiStatus(
+            boolean apiTokenEnabled,
+            boolean apiTokenConfigured,
+            boolean apiTokenProtected) {
     }
 
     public record DifyStatus(

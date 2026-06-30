@@ -27,6 +27,8 @@ class QqBotPropertiesBindingReflectionTest {
                 .withProperty("qqbot.private-admin.replies.unknown-command", "unknown")
                 .withProperty("qqbot.private-admin.replies.success", "success")
                 .withProperty("qqbot.private-admin.replies.status-prefix", "status")
+                .withProperty("qqbot.admin-ui.api-token-enabled", "true")
+                .withProperty("qqbot.admin-ui.api-token", "admin-test-token")
                 .withProperty("qqbot.onebot.self-id", "1771183256")
                 .withProperty("qqbot.onebot.allowed-group-ids[0]", "736566774")
                 .withProperty("qqbot.onebot.ws.enabled", "true")
@@ -62,6 +64,7 @@ class QqBotPropertiesBindingReflectionTest {
         Object commandAliases = invoke(properties, "getCommandAliases");
         Object privateAdmin = invoke(properties, "getPrivateAdmin");
         Object replies = invoke(privateAdmin, "getReplies");
+        Object adminUi = invoke(properties, "getAdminUi");
         Object onebot = invoke(properties, "getOnebot");
         Object ws = invoke(onebot, "getWs");
         Object activeChat = invoke(properties, "getActiveChat");
@@ -84,6 +87,8 @@ class QqBotPropertiesBindingReflectionTest {
         assertThat(invoke(replies, "getUnknownCommand")).isEqualTo("unknown");
         assertThat(invoke(replies, "getSuccess")).isEqualTo("success");
         assertThat(invoke(replies, "getStatusPrefix")).isEqualTo("status");
+        assertThat(invoke(adminUi, "isApiTokenEnabled")).isEqualTo(true);
+        assertThat(invoke(adminUi, "getApiToken")).isEqualTo("admin-test-token");
         assertThat(invoke(onebot, "getSelfId")).isEqualTo("1771183256");
         assertThat((java.util.List<Object>) invoke(onebot, "getAllowedGroupIds")).containsExactly("736566774");
         assertThat(invoke(ws, "isEnabled")).isEqualTo(true);
