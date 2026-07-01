@@ -17,7 +17,9 @@ import {
   type SceneDict,
 } from '@/api/memes'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
+const { confirmAction } = useConfirmAction()
 const loading = ref(false)
 const saving = ref(false)
 const scenes = ref<SceneDict[]>([])
@@ -107,6 +109,9 @@ async function saveSceneForm() {
     ElMessage.warning('请填写 sceneCode 和场景描述')
     return
   }
+  if (!await confirmAction(`将保存场景 ${sceneCode} 并尝试刷新表情包缓存，继续吗？`)) {
+    return
+  }
   saving.value = true
   try {
     await saveScene(sceneCode, {
@@ -127,6 +132,10 @@ async function saveMaterialForm() {
     ElMessage.warning('请填写素材相对路径')
     return
   }
+  const action = selected.value ? `更新素材 #${selected.value.memeId}` : '新增素材'
+  if (!await confirmAction(`将${action}，并尝试刷新表情包缓存，继续吗？`)) {
+    return
+  }
   saving.value = true
   try {
     const request = normalizeMaterial()
@@ -145,6 +154,9 @@ async function saveMaterialForm() {
 }
 
 async function refreshCache() {
+  if (!await confirmAction('将手动触发表情包缓存预热，继续吗？')) {
+    return
+  }
   saving.value = true
   try {
     await preheatMemeCache()

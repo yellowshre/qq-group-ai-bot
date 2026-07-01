@@ -36,7 +36,9 @@ import {
   rememberLastGroupId,
   rememberLastOperator,
 } from '@/composables/useAdminPreferences'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
+const { confirmAction } = useConfirmAction()
 const loading = ref(false)
 const acting = ref(false)
 const overview = ref<AdminOverviewResponse | null>(null)
@@ -215,6 +217,9 @@ async function importHistoryAction() {
     ElMessage.warning('导入需要 groupId 和 JSON 文件路径')
     return
   }
+  if (!await confirmAction(`将导入 ${filePath} 到群 ${groupId} 的聊天历史表，继续吗？`)) {
+    return
+  }
   await runAction(async () => {
     importResult.value = await importChatHistory(groupId, filePath)
     form.value.batchId = `${importResult.value.batchId}`
@@ -227,6 +232,9 @@ async function generateCandidatesAction() {
   const groupId = requireGroupId()
   const batchId = parseBatchId()
   if (!groupId || !batchId) return
+  if (!await confirmAction(`将为群 ${groupId} 的 batch ${batchId} 生成候选群梗和成员画像，继续吗？`)) {
+    return
+  }
   await runAction(async () => {
     generateResult.value = await generateCandidates(batchId, groupId)
     ElMessage.success(
@@ -241,6 +249,9 @@ async function publishApprovedKnowledgeAction() {
   if (!groupId) return
   if (approvedKnowledgeIds.value.length === 0) {
     ElMessage.warning('当前没有 APPROVED 群梗候选可发布')
+    return
+  }
+  if (!await confirmAction(`将发布 ${approvedKnowledgeIds.value.length} 条已审批群梗到正式知识库，继续吗？`)) {
     return
   }
   await runAction(async () => {
@@ -262,6 +273,9 @@ async function publishApprovedMembersAction() {
     ElMessage.warning('当前没有 APPROVED 成员画像候选可发布')
     return
   }
+  if (!await confirmAction(`将发布 ${approvedMemberIds.value.length} 条已审批成员画像，继续吗？`)) {
+    return
+  }
   await runAction(async () => {
     publishResult.value = await publishMemberProfiles(
       groupId,
@@ -277,6 +291,9 @@ async function publishApprovedMembersAction() {
 async function generateEmbeddingAction() {
   const groupId = requireGroupId()
   if (!groupId) return
+  if (!await confirmAction(`将为群 ${groupId} 生成 embedding，Ollama 不可用时会记录失败，继续吗？`)) {
+    return
+  }
   await runAction(async () => {
     embeddingResult.value = await generateEmbeddings(
       groupId,

@@ -46,7 +46,9 @@ import {
   rememberLastGroupId,
   rememberLastOperator,
 } from '@/composables/useAdminPreferences'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
+const { confirmAction } = useConfirmAction()
 const activeTab = ref('knowledge-candidates')
 const loading = ref(false)
 const acting = ref(false)
@@ -169,6 +171,9 @@ async function generate() {
     ElMessage.warning('生成候选需要填写 groupId 和有效 batchId')
     return
   }
+  if (!await confirmAction(`将为群 ${groupId} 的 batch ${batchId} 生成候选群梗和成员画像，继续吗？`)) {
+    return
+  }
   acting.value = true
   try {
     generateResult.value = await generateCandidates(batchId, groupId)
@@ -188,6 +193,9 @@ async function importHistory() {
   const filePath = filter.value.filePath.trim()
   if (!groupId || !filePath) {
     ElMessage.warning('导入需要填写 groupId 和 JSON 文件路径')
+    return
+  }
+  if (!await confirmAction(`将导入 ${filePath} 到群 ${groupId} 的聊天历史表，继续吗？`)) {
     return
   }
   await runAction(async () => {
@@ -248,6 +256,9 @@ async function batchReviewKnowledge(status: CandidateStatus) {
     ElMessage.warning('请先选择候选知识')
     return
   }
+  if (!await confirmAction(`将${status === 'APPROVED' ? '通过' : '拒绝'}候选知识 ${ids.length} 条，继续吗？`)) {
+    return
+  }
   await runAction(async () => {
     for (const id of ids) {
       await reviewKnowledgeCandidate(id, status, reviewer(), comment())
@@ -269,6 +280,9 @@ async function batchReviewMembers(status: CandidateStatus) {
   const ids = selectedMemberIds.value
   if (ids.length === 0) {
     ElMessage.warning('请先选择成员候选')
+    return
+  }
+  if (!await confirmAction(`将${status === 'APPROVED' ? '通过' : '拒绝'}成员候选 ${ids.length} 条，继续吗？`)) {
     return
   }
   await runAction(async () => {
@@ -310,6 +324,9 @@ async function publishSelectedKnowledge() {
     ElMessage.warning('请先输入 groupId，并选择已通过的候选知识')
     return
   }
+  if (!await confirmAction(`将发布 ${approvedKnowledgeIds.value.length} 条已通过候选到正式知识库，继续吗？`)) {
+    return
+  }
   await runAction(async () => {
     publishResult.value = await publishKnowledge(groupId, approvedKnowledgeIds.value, reviewer(), comment())
     ElMessage.success(`发布完成：${publishResult.value.published} 条，跳过 ${publishResult.value.skipped} 条`)
@@ -321,6 +338,9 @@ async function publishSelectedMembers() {
   const groupId = filter.value.groupId.trim()
   if (!groupId || approvedMemberIds.value.length === 0) {
     ElMessage.warning('请先输入 groupId，并选择已通过的成员候选')
+    return
+  }
+  if (!await confirmAction(`将发布 ${approvedMemberIds.value.length} 条已通过候选到正式成员画像，继续吗？`)) {
     return
   }
   await runAction(async () => {
@@ -349,6 +369,9 @@ async function toggleMemberProfile(item: MemberProfile, enabled: boolean) {
 async function generateEmbeddingAction() {
   const groupId = requireGroupId()
   if (!groupId) return
+  if (!await confirmAction(`将为群 ${groupId} 生成 embedding，Ollama 不可用时会记录失败，继续吗？`)) {
+    return
+  }
   await runAction(async () => {
     embeddingResult.value = await generateEmbeddings(
       groupId,

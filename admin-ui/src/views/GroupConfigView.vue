@@ -14,7 +14,9 @@ import type { GroupConfigSnapshot } from '@/api/health'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { rememberLastGroupId, useLastGroupId } from '@/composables/useAdminPreferences'
+import { useConfirmAction } from '@/composables/useConfirmAction'
 
+const { confirmAction } = useConfirmAction()
 const loading = ref(false)
 const saving = ref(false)
 const inputGroupId = useLastGroupId()
@@ -144,6 +146,9 @@ async function save() {
   }
   if (!isDirty.value) {
     ElMessage.info('当前没有需要保存的变更')
+    return
+  }
+  if (!await confirmAction(`将保存群 ${selectedGroupId.value} 的 ${diffItems.value.length} 项配置变更，继续吗？`)) {
     return
   }
   saving.value = true
