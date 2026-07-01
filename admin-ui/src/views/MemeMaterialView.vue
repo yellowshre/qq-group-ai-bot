@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { CopyDocument, Refresh, Search } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { CopyDocument, Refresh, Search, Upload } from '@element-plus/icons-vue'
+import { ElMessage, type UploadFile, type UploadInstance } from 'element-plus'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 
 import {
   checkMemeFiles,
@@ -11,9 +11,11 @@ import {
   preheatMemeCache,
   saveScene,
   updateMemeMaterial,
+  uploadMemeFile,
   type MemeFileCheckItem,
   type MemeMaterial,
   type MemeMaterialRequest,
+  type MemeUploadResult,
   type SceneDict,
 } from '@/api/memes'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -26,6 +28,11 @@ const scenes = ref<SceneDict[]>([])
 const materials = ref<MemeMaterial[]>([])
 const fileChecks = ref<MemeFileCheckItem[]>([])
 const selected = ref<MemeMaterial | null>(null)
+const editorRef = ref<HTMLElement | null>(null)
+const uploadRef = ref<UploadInstance>()
+const uploadFile = ref<File | null>(null)
+const uploading = ref(false)
+const lastUploadResult = ref<MemeUploadResult | null>(null)
 const filter = reactive({
   sceneCode: '',
   enabled: '',
@@ -82,6 +89,7 @@ const keywordPreview = computed(() =>
 )
 
 const pathWarnings = computed(() => validateMemePath(materialForm.filePath))
+const acceptedMemeTypes = '.png,.jpg,.jpeg,.gif,.webp'
 
 async function loadAll() {
   loading.value = true
@@ -191,6 +199,8 @@ async function runFileCheck() {
 function selectMaterial(item: MemeMaterial) {
   selected.value = item
   applyMaterial(item)
+  clearUploadState()
+  scrollToEditor()
 }
 
 function newMaterial() {
@@ -203,6 +213,8 @@ function newMaterial() {
     enabled: true,
     filePath: filter.sceneCode ? `${filter.sceneCode}/${filter.sceneCode}_001.png` : '',
   })
+  clearUploadState()
+  scrollToEditor()
 }
 
 function clearSceneFilter() {
@@ -231,6 +243,54 @@ function applyMaterial(item: MemeMaterial) {
     enabled: Boolean(item.enabled),
     filePath: item.filePath ?? '',
   })
+}
+
+function handleUploadChange(file: UploadFile) {
+  uploadFile.value = file.raw ?? null
+  lastUploadResult.value = null
+}
+
+function handleUploadRemove() {
+  uploadFile.value = null
+  lastUploadResult.value = null
+}
+
+async function submitUpload() {
+  const sceneCode = materialForm.sceneCode?.trim() || filter.sceneCode.trim()
+  if (!sceneCode) {
+    ElMessage.warning('请先选择或填写场景')
+    return
+  }
+  if (!uploadFile.value) {
+    ElMessage.warning('请先选择一张表情包图片')
+    return
+  }
+  uploading.value = true
+  try {
+    const result = await uploadMemeFile(sceneCode, uploadFile.value)
+    lastUploadResult.value = result
+    materialForm.sceneCode = sceneCode
+    materialForm.sceneDesc = sceneDescOf(sceneCode)
+    materialForm.filePath = result.relativePath
+    uploadRef.value?.clearFiles()
+    uploadFile.value = null
+    ElMessage.success(`图片已上传：${result.relativePath}`)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : '图片上传失败')
+  } finally {
+    uploading.value = false
+  }
+}
+
+function clearUploadState() {
+  uploadFile.value = null
+  lastUploadResult.value = null
+  uploadRef.value?.clearFiles()
+}
+
+async function scrollToEditor() {
+  await nextTick()
+  editorRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function normalizeMaterial(): MemeMaterialRequest {
@@ -336,7 +396,7 @@ onMounted(loadAll)
         <el-button :icon="Refresh" :loading="loading" @click="loadAll">刷新</el-button>
         <el-button :loading="saving" @click="refreshCache">刷新缓存</el-button>
         <el-button :loading="loading" @click="runFileCheck">路径巡检</el-button>
-        <el-button @click="newMaterial">新增素材</el-button>
+        <el-button type="primary" :icon="Upload" @click="newMaterial">上传表情包</el-button>
       </template>
     </PageHeader>
 
@@ -380,6 +440,7 @@ onMounted(loadAll)
         </el-form>
       </aside>
 
+      <div class="meme-main-stack">
       <section class="panel meme-file-check">
         <div class="panel-title-row">
           <h3>素材列表</h3>
@@ -408,7 +469,7 @@ onMounted(loadAll)
           <el-form-item class="rank-submit">
             <div class="table-actions">
               <el-button :icon="Search" type="primary" :loading="loading" @click="loadAll">查询</el-button>
-              <el-button @click="newMaterial">新增素材</el-button>
+              <el-button @click="newMaterial">新增记录</el-button>
             </div>
           </el-form-item>
         </el-form>
@@ -441,6 +502,102 @@ onMounted(loadAll)
           </el-table-column>
         </el-table>
         <div v-else class="empty-block compact">暂无素材。可以先新增一条相对路径素材。</div>
+      </section>
+
+      <section ref="editorRef" class="panel meme-editor">
+        <div class="panel-title-row">
+          <h3>{{ selected ? `编辑素材 #${selected.memeId}` : '新增素材' }}</h3>
+          <span class="panel-subtitle">保存后会尝试刷新 Redis 缓存</span>
+        </div>
+        <el-form class="config-form" label-position="top">
+          <div class="number-form-grid">
+            <el-form-item label="场景">
+              <el-select v-model="materialForm.sceneCode" clearable @change="copySceneToMaterial">
+                <el-option
+                  v-for="item in scenes"
+                  :key="item.sceneCode"
+                  :label="item.sceneCode"
+                  :value="item.sceneCode"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="权重">
+              <el-input-number v-model="materialForm.weight" :min="0" />
+            </el-form-item>
+            <el-form-item label="启用">
+              <el-switch v-model="materialForm.enabled" />
+            </el-form-item>
+          </div>
+
+          <div class="meme-upload-card">
+            <div class="meme-upload-head">
+              <strong>上传图片到 memes 目录</strong>
+              <span>后端会按场景自动命名，并把相对路径填入下方字段。</span>
+            </div>
+            <el-upload
+              ref="uploadRef"
+              class="meme-upload"
+              drag
+              action="#"
+              :auto-upload="false"
+              :limit="1"
+              :accept="acceptedMemeTypes"
+              :on-change="handleUploadChange"
+              :on-remove="handleUploadRemove"
+            >
+              <el-icon class="el-icon--upload"><Upload /></el-icon>
+              <div class="el-upload__text">拖入图片，或点击选择文件</div>
+              <template #tip>
+                <div class="el-upload__tip">支持 png、jpg、jpeg、gif、webp，单文件不超过 20MB。</div>
+              </template>
+            </el-upload>
+            <div class="meme-upload-actions">
+              <el-button type="primary" :loading="uploading" @click="submitUpload">上传并填入路径</el-button>
+              <span v-if="lastUploadResult">已上传：{{ lastUploadResult.relativePath }}</span>
+              <span v-else>数据库只保存相对路径，真实文件放在 QQBOT_MEME_BASE_DIR。</span>
+            </div>
+          </div>
+
+          <el-form-item label="图片相对路径">
+            <el-input v-model="materialForm.filePath" placeholder="laugh/laugh_001.png" clearable />
+          </el-form-item>
+          <div class="meme-path-tools">
+            <div class="table-actions">
+              <el-button size="small" @click="suggestPath('png')">生成 png 路径</el-button>
+              <el-button size="small" @click="suggestPath('gif')">生成 gif 路径</el-button>
+              <el-button size="small" :icon="CopyDocument" @click="copyPath">复制路径</el-button>
+            </div>
+            <div class="meme-hint-list">
+              <span
+                v-for="item in pathWarnings"
+                :key="item"
+                :class="{ good: item.includes('没问题') }"
+              >
+                {{ item }}
+              </span>
+            </div>
+          </div>
+          <el-form-item label="关键词">
+            <el-input
+              v-model="materialForm.keywords"
+              type="textarea"
+              :autosize="{ minRows: 3, maxRows: 5 }"
+              placeholder="哈哈,笑死,乐"
+            />
+          </el-form-item>
+          <div v-if="keywordPreview.length" class="keyword-preview">
+            <el-tag v-for="keyword in keywordPreview" :key="keyword" effect="plain">
+              {{ keyword }}
+            </el-tag>
+          </div>
+          <el-form-item label="场景描述">
+            <el-input v-model="materialForm.sceneDesc" placeholder="可从 scene_dict 自动带出" clearable />
+          </el-form-item>
+          <div class="table-actions">
+            <el-button type="primary" :loading="saving" @click="saveMaterialForm">保存素材</el-button>
+            <el-button @click="newMaterial">清空为新增</el-button>
+          </div>
+        </el-form>
       </section>
 
       <section class="panel">
@@ -484,72 +641,7 @@ onMounted(loadAll)
           点击“路径巡检”后，这里会展示当前筛选条件下素材文件是否存在。
         </div>
       </section>
-
-      <section class="panel meme-editor">
-        <div class="panel-title-row">
-          <h3>{{ selected ? `编辑素材 #${selected.memeId}` : '新增素材' }}</h3>
-          <span class="panel-subtitle">保存后会尝试刷新 Redis 缓存</span>
-        </div>
-        <el-form class="config-form" label-position="top">
-          <el-form-item label="图片相对路径">
-            <el-input v-model="materialForm.filePath" placeholder="laugh/laugh_001.png" clearable />
-          </el-form-item>
-          <div class="meme-path-tools">
-            <div class="table-actions">
-              <el-button size="small" @click="suggestPath('png')">生成 png 路径</el-button>
-              <el-button size="small" @click="suggestPath('gif')">生成 gif 路径</el-button>
-              <el-button size="small" :icon="CopyDocument" @click="copyPath">复制路径</el-button>
-            </div>
-            <div class="meme-hint-list">
-              <span
-                v-for="item in pathWarnings"
-                :key="item"
-                :class="{ good: item.includes('没问题') }"
-              >
-                {{ item }}
-              </span>
-            </div>
-          </div>
-          <div class="number-form-grid">
-            <el-form-item label="场景">
-              <el-select v-model="materialForm.sceneCode" clearable @change="copySceneToMaterial">
-                <el-option
-                  v-for="item in scenes"
-                  :key="item.sceneCode"
-                  :label="item.sceneCode"
-                  :value="item.sceneCode"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="权重">
-              <el-input-number v-model="materialForm.weight" :min="0" />
-            </el-form-item>
-            <el-form-item label="启用">
-              <el-switch v-model="materialForm.enabled" />
-            </el-form-item>
-          </div>
-          <el-form-item label="关键词">
-            <el-input
-              v-model="materialForm.keywords"
-              type="textarea"
-              :autosize="{ minRows: 3, maxRows: 5 }"
-              placeholder="哈哈,笑死,乐"
-            />
-          </el-form-item>
-          <div v-if="keywordPreview.length" class="keyword-preview">
-            <el-tag v-for="keyword in keywordPreview" :key="keyword" effect="plain">
-              {{ keyword }}
-            </el-tag>
-          </div>
-          <el-form-item label="场景描述">
-            <el-input v-model="materialForm.sceneDesc" placeholder="可从 scene_dict 自动带出" clearable />
-          </el-form-item>
-          <div class="table-actions">
-            <el-button type="primary" :loading="saving" @click="saveMaterialForm">保存素材</el-button>
-            <el-button @click="newMaterial">清空为新增</el-button>
-          </div>
-        </el-form>
-      </section>
+      </div>
     </section>
   </div>
 </template>

@@ -39,6 +39,7 @@ GET /dev/admin/memes/materials
 GET /dev/admin/memes/materials/{memeId}
 POST /dev/admin/memes/materials
 PUT /dev/admin/memes/materials/{memeId}
+POST /dev/admin/memes/files/upload
 POST /dev/admin/memes/cache/preheat
 GET /dev/admin/memes/files/check
 GET /dev/admin/logs/triggers
@@ -216,6 +217,7 @@ GET /dev/admin/overview?groupId=251288204
 - 查看、编辑、新增场景字典。
 - 查看、筛选、新增、编辑表情包素材。
 - 维护关键词、sceneCode、sceneDesc、weight、enabled、filePath。
+- 上传本地图片到 `QQBOT_MEME_BASE_DIR`，后端按场景自动生成规范相对路径。
 - 保存后会尝试刷新 Redis 表情包缓存，也可以手动点击“刷新缓存”。
 - 显示当前筛选下的素材数量、启用数量和停用数量。
 - 在编辑区预览关键词拆分结果。
@@ -230,7 +232,16 @@ awkward/awkward_001.png
 comfort/comfort_001.jpg
 ```
 
-素材管理不会上传真实图片，只维护数据库里的路径和匹配元数据。图片文件仍放在项目 `memes/` 目录或 `QQBOT_MEME_BASE_DIR` 指向的目录下。
+上传图片时，后端会生成 `sceneCode_编号.扩展名` 格式的文件名，例如 `laugh/laugh_001.png`，并把这个相对路径回填到表单。数据库仍只保存相对路径和匹配元数据；真实图片文件放在项目 `memes/` 目录或 `QQBOT_MEME_BASE_DIR` 指向的目录下。
+
+上传支持 `.png`、`.jpg`、`.jpeg`、`.gif`、`.webp`，默认单文件上限 20MB，可通过：
+
+```env
+QQBOT_MEME_UPLOAD_MAX_FILE_SIZE=20MB
+QQBOT_MEME_UPLOAD_MAX_REQUEST_SIZE=20MB
+```
+
+调整。上传后的真实图片默认不应提交到 Git。
 
 路径格式提示只做前端辅助；“路径巡检”会调用后端同一套 OneBot 图片路径解析逻辑，检查本地可检查路径是否存在。`http://`、`https://`、`base64://` 等直接引用不会做本地存在性检查。真实发送前后端仍会再次检查最终文件路径并记录 warn。
 

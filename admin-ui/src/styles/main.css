@@ -258,6 +258,7 @@ textarea {
 
 .metric-card,
 .panel {
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgb(255 255 255 / 84%);
@@ -1079,11 +1080,20 @@ textarea {
   align-items: start;
 }
 
+.meme-main-stack {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.meme-main-stack > .panel {
+  overflow: hidden;
+}
+
 .meme-result-strip {
   margin-bottom: 12px;
 }
 
-.meme-side,
 .group-picker {
   position: sticky;
   top: 18px;
@@ -1148,18 +1158,55 @@ textarea {
   width: 100%;
 }
 
-.meme-editor {
-  grid-column: 2;
-}
-
-.meme-file-check {
-  grid-column: 2;
-}
-
 .meme-path-tools {
   display: grid;
   gap: 10px;
   margin-top: -8px;
+}
+
+.meme-upload-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfbfa;
+}
+
+.meme-upload-head {
+  display: grid;
+  gap: 4px;
+}
+
+.meme-upload-head strong {
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.meme-upload-head span,
+.meme-upload-actions span {
+  color: var(--subtle);
+  font-size: 12px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.meme-upload .el-upload {
+  width: 100%;
+}
+
+.meme-upload .el-upload-dragger {
+  width: 100%;
+  padding: 20px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.meme-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
 .meme-hint-list {
@@ -1355,15 +1402,25 @@ textarea {
 
 .persona-tools {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   margin-top: -8px;
+  margin-bottom: 10px;
 }
 
 .persona-tools span {
+  flex: 1 1 220px;
+  min-width: 0;
   color: var(--subtle);
   font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.persona-tools .el-button {
+  flex: 0 0 auto;
 }
 
 .empty-block.compact {

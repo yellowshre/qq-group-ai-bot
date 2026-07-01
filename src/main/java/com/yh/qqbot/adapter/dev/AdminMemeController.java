@@ -10,10 +10,12 @@ import com.yh.qqbot.entity.SceneDictEntity;
 import com.yh.qqbot.mapper.MemeMaterialMapper;
 import com.yh.qqbot.mapper.SceneDictMapper;
 import com.yh.qqbot.service.meme.MemeCacheService;
+import com.yh.qqbot.service.meme.MemeFileStorageService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @Profile({"dev", "local"})
@@ -32,16 +35,19 @@ public class AdminMemeController {
     private final MemeMaterialMapper memeMaterialMapper;
     private final MemeCacheService memeCacheService;
     private final OneBotImagePathResolver imagePathResolver;
+    private final MemeFileStorageService memeFileStorageService;
 
     public AdminMemeController(
             SceneDictMapper sceneDictMapper,
             MemeMaterialMapper memeMaterialMapper,
             MemeCacheService memeCacheService,
-            OneBotImagePathResolver imagePathResolver) {
+            OneBotImagePathResolver imagePathResolver,
+            MemeFileStorageService memeFileStorageService) {
         this.sceneDictMapper = sceneDictMapper;
         this.memeMaterialMapper = memeMaterialMapper;
         this.memeCacheService = memeCacheService;
         this.imagePathResolver = imagePathResolver;
+        this.memeFileStorageService = memeFileStorageService;
     }
 
     @GetMapping("/scenes")
@@ -139,6 +145,13 @@ public class AdminMemeController {
         return memeMaterialMapper.selectList(wrapper).stream()
                 .map(entity -> AdminMemeFileCheckItem.from(entity, imagePathResolver.inspect(entity.getFilePath())))
                 .toList();
+    }
+
+    @PostMapping(value = "/files/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public MemeFileStorageService.UploadResult uploadFile(
+            @RequestParam String sceneCode,
+            @RequestParam("file") MultipartFile file) {
+        return memeFileStorageService.store(sceneCode, file);
     }
 
     private void applyMaterial(MemeMaterialEntity entity, AdminMemeMaterialRequest request) {

@@ -11,6 +11,10 @@ spring:
   sql:
     init:
       mode: never
+  servlet:
+    multipart:
+      max-file-size: ${QQBOT_MEME_UPLOAD_MAX_FILE_SIZE:20MB}
+      max-request-size: ${QQBOT_MEME_UPLOAD_MAX_REQUEST_SIZE:20MB}
 server:
   port: 8081
 

@@ -64,3 +64,18 @@ Then it converts the resolved path to a OneBot-compatible file URI, for example:
 ```text
 file:///C:/Users/yang/Desktop/XM/QQbot/bot/memes/laugh/laugh_001.png
 ```
+
+## Admin UI Upload
+
+The local admin UI can upload meme files from `/admin/memes`.
+
+Workflow:
+
+1. Select a `sceneCode`.
+2. Choose a local `.png`, `.jpg`, `.jpeg`, `.gif`, or `.webp` file.
+3. Click upload.
+4. The backend stores the file under `QQBOT_MEME_BASE_DIR/{sceneCode}/`.
+5. The admin UI fills `meme_material.file_path` with the generated relative path.
+6. Fill keywords, weight, enabled state, and save the material record.
+
+Uploaded files are local assets. They should stay out of Git unless you deliberately want to version a tiny placeholder image.

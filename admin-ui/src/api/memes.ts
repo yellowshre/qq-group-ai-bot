@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './client'
+import { apiGet, apiPost, apiPostForm, apiPut } from './client'
 
 export interface SceneDict {
   sceneCode: string
@@ -29,6 +29,15 @@ export interface MemeFileCheckItem {
   checkable: boolean
   directReference: boolean
   warning?: string | null
+}
+
+export interface MemeUploadResult {
+  relativePath: string
+  fileName: string
+  resolvedPath: string
+  oneBotFile: string
+  size: number
+  contentType: string
 }
 
 export interface SceneDictRequest {
@@ -86,4 +95,11 @@ export function preheatMemeCache() {
 
 export function checkMemeFiles(query: Pick<MemeMaterialQuery, 'sceneCode' | 'enabled'>) {
   return apiGet<MemeFileCheckItem[]>(withQuery('/dev/admin/memes/files/check', query))
+}
+
+export function uploadMemeFile(sceneCode: string, file: File) {
+  const formData = new FormData()
+  formData.set('sceneCode', sceneCode)
+  formData.set('file', file)
+  return apiPostForm<MemeUploadResult>('/dev/admin/memes/files/upload', formData)
 }

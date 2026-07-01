@@ -46,6 +46,14 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   }))
 }
 
+export async function apiPostForm<T>(path: string, body: FormData): Promise<T> {
+  return request<T>(() => fetch(path, {
+    method: 'POST',
+    headers: requestHeaders(),
+    body,
+  }))
+}
+
 export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return request<T>(() => fetch(path, {
     method: 'PUT',
